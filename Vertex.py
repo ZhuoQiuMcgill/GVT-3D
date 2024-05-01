@@ -17,3 +17,23 @@ class Vertex:
     @staticmethod
     def subtract(v1, v2):
         return np.array([v1.x - v2.x, v1.y - v2.y, v1.z - v2.z])
+
+    @staticmethod
+    def add(v1, v2):
+        return np.array([v1.x + v2.x, v1.y + v2.y, v1.z + v2.z])
+
+    @staticmethod
+    def center(vertices):
+        total_x = 0
+        total_y = 0
+        total_z = 0
+        count = 0
+        for vertex in vertices:
+            total_x += vertex.x
+            total_y += vertex.y
+            total_z += vertex.z
+            count += 1
+
+        if count == 0:
+            return np.array([0, 0, 0])
+        return np.array([total_x / count, total_y / count, total_z / count])

@@ -28,3 +28,23 @@ class Face:
 
     def __str__(self):
         return "Face"
+
+    def generate_next_vertex(self):
+        vertices = [self.halfedge.vertex]
+        edge_count = 1
+        total_length = self.halfedge.length()
+        halfedge = self.halfedge.next
+        while halfedge != self.halfedge:
+            total_length += halfedge.length()
+            vertices.append(halfedge.vertex)
+            edge_count += 1
+            halfedge = halfedge.next
+
+        avg_length = total_length / edge_count
+        center = Vertex.center(vertices)
+        normal = self.normal()
+
+        new_position = center - normal * avg_length
+        return Vertex(new_position[0], new_position[1], new_position[2])
+
+
