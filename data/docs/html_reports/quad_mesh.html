@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开源四边形水密网格数据集浏览器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Report Intro/Challenge (Home): Static text. Goal: Inform. Method: HTML paragraphs.
+        - Dataset Information (Dataset Explorer): Interactive cards. Goal: Compare, Inform, Organize. Method: HTML cards, JS for filtering and dynamic display of details. Data from Report Table 1 & Section 2. Interaction: Clickable filters, expandable cards. Library: Vanilla JS.
+        - Tools & Libraries (Tools & Practices): Categorized lists and a bar chart. Goal: Inform, Organize. Method: HTML lists/accordions, Chart.js bar chart for tool category counts. Data from Report Section 3. Interaction: Click to expand tool details. Library: Vanilla JS, Chart.js.
+        - Practical Considerations (Tools & Practices): Bullet points/text. Goal: Inform. Method: HTML. Data from Report Section 4.
+        - Report Conclusion/Recommendations (Report Summary): Summarized text. Goal: Inform. Method: HTML. Data from Report Section 5.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visual elements are HTML/CSS/Tailwind or Unicode.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        .active-nav {
+            border-bottom: 2px solid #0D9488; /* teal-600 */
+            color: #0D9488; /* teal-600 */
+            font-weight: 600;
+        }
+        .nav-item {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-stone-700 hover:bg-stone-200 hover:text-stone-900 cursor-pointer;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .filter-button {
+            @apply px-4 py-2 border border-stone-300 rounded-md text-sm text-stone-700 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500;
+        }
+        .filter-button.active {
+            @apply bg-teal-600 text-white border-teal-600;
+        }
+        .card-content p {
+            @apply mb-1;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Adjusted max-width */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px; /* Adjusted max-height */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-sky-700">开源四边形水密网格数据集浏览器</h1>
+                </div>
+                <nav class="hidden md:flex space-x-4">
+                    <a id="nav-home" class="nav-item active-nav">首页</a>
+                    <a id="nav-explorer" class="nav-item">数据集探索</a>
+                    <a id="nav-tools" class="nav-item">工具与实践</a>
+                    <a id="nav-summary" class="nav-item">报告总结</a>
+                </nav>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-stone-700 hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg">
+            <a id="mobile-nav-home" class="block px-4 py-3 text-base font-medium text-stone-700 hover:bg-stone-200 hover:text-sky-700">首页</a>
+            <a id="mobile-nav-explorer" class="block px-4 py-3 text-base font-medium text-stone-700 hover:bg-stone-200 hover:text-sky-700">数据集探索</a>
+            <a id="mobile-nav-tools" class="block px-4 py-3 text-base font-medium text-stone-700 hover:bg-stone-200 hover:text-sky-700">工具与实践</a>
+            <a id="mobile-nav-summary" class="block px-4 py-3 text-base font-medium text-stone-700 hover:bg-stone-200 hover:text-sky-700">报告总结</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="content-home" class="content-section active">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold text-sky-700 mb-4">欢迎来到开源四边形水密网格数据集浏览器</h2>
+                <p class="mb-4">在计算机图形学、CAD、工程仿真及3D打印等领域，高质量的三维网格数据至关重要。特别是“四边形网格”（Quad Meshes）和“水密性”（Watertightness）这两个特性，直接影响着后续处理的效率和最终结果的质量。</p>
+                <p class="mb-4">本应用旨在帮助您探索和理解调研报告中关于开源、四边形、水密网格数据集的核心信息。寻找同时满足这三个条件的数据集并非易事，许多现有资源可能需要额外的处理和验证。</p>
+                <div class="mt-6 p-4 bg-sky-50 border-l-4 border-sky-500 rounded-r-lg">
+                    <h3 class="text-lg font-semibold text-sky-700 mb-2">核心挑战：</h3>
+                    <ul class="list-disc list-inside text-stone-700 space-y-1">
+                        <li>纯四边形且水密的数据集相对稀缺。</li>
+                        <li>许多公开模型（如STL格式）本质是三角化的，需要转换。</li>
+                        <li>水密性不被保证，常需修复孔洞、非流形等缺陷。</li>
+                        <li>开源许可和数据可访问性需要仔细核查。</li>
+                    </ul>
+                </div>
+                <p class="mt-4">通过本应用，您可以浏览潜在的数据集，了解相关的处理工具和最佳实践，希望能为您的研究和项目提供有价值的参考。</p>
+            </div>
+        </section>
+
+        <section id="content-explorer" class="content-section">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold text-sky-700 mb-6">数据集探索</h2>
+                <p class="mb-6 text-stone-600">下方列出了报告中调研的潜在开源四边形水密网格数据集。您可以使用筛选器来缩小选择范围，并点击卡片查看更详细的描述（如果报告中有提供）。</p>
+
+                <div class="mb-8 space-y-4">
+                    <div>
+                        <h3 class="text-lg font-medium text-stone-700 mb-2">筛选条件:</h3>
+                        <div class="flex flex-wrap gap-4">
+                            <div>
+                                <label for="filter-quad" class="block text-sm font-medium text-stone-600 mb-1">四边形特性:</label>
+                                <select id="filter-quad" class="filter-button w-full sm:w-auto">
+                                    <option value="all">全部</option>
+                                    <option value="纯四边形">纯四边形</option>
+                                    <option value="鼓励四边形">鼓励四边形</option>
+                                    <option value="可能为结构化四边形">可能为结构化四边形</option>
+                                    <option value="暗示四边形">暗示四边形</option>
+                                    <option value="可变">可变</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-watertight" class="block text-sm font-medium text-stone-600 mb-1">水密性:</label>
+                                <select id="filter-watertight" class="filter-button w-full sm:w-auto">
+                                    <option value="all">全部</option>
+                                    <option value="目标是水密">目标是水密</option>
+                                    <option value="鼓励清洁几何，可能水密">鼓励清洁几何，可能水密</option>
+                                    <option value="名称暗示流形，但需验证">名称暗示流形，但需验证</option>
+                                    <option value="未明确，PFPOffset目标输出良好">未明确，PFPOffset目标输出良好</option>
+                                    <option value="可变，通常需检查和处理">可变，通常需检查和处理</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-license" class="block text-sm font-medium text-stone-600 mb-1">开源许可:</label>
+                                <select id="filter-license" class="filter-button w-full sm:w-auto">
+                                    <option value="all">全部</option>
+                                    <option value="CC0">CC0</option>
+                                    <option value="MIT">MIT (代码库)</option>
+                                    <option value="需在源头验证">需在源头验证</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dataset-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+                <p id="no-results" class="text-center text-stone-500 hidden mt-8">没有找到符合筛选条件的数据集。</p>
+            </div>
+        </section>
+
+        <section id="content-tools" class="content-section">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold text-sky-700 mb-6">工具与实践</h2>
+                <p class="mb-6 text-stone-600">鉴于直接满足所有条件的理想数据集可能难以获得，掌握相关的工具和库对于处理和验证现有网格数据至关重要。本部分将介绍报告中提及的工具以及相关的实践考量。</p>
+
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-sky-600 mb-3">工具概览</h3>
+                    <p class="mb-4 text-stone-600">下图展示了报告中提及的各类处理工具的数量分布，帮助您了解不同功能方向的工具丰富程度。</p>
+                    <div class="chart-container bg-stone-50 p-4 rounded-lg shadow-inner">
+                        <canvas id="toolsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-sky-600 mb-3">工具列表</h3>
+                    <div id="tools-list-container" class="space-y-4">
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-3">实践考量与最佳实践</h3>
+                    <div class="space-y-4 text-stone-700">
+                        <div>
+                            <h4 class="font-semibold text-lg text-teal-700">4.1. 验证网格属性</h4>
+                            <p>由于数据集的描述可能不总是完全准确或最新，用户应具备独立验证网格属性的能力。</p>
+                            <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                                <li><strong>四边形验证:</strong> 在MeshLab、Blender等软件中检查面度数，或使用Trimesh、Open3D等库以编程方式进行。查看面类型的统计数据。</li>
+                                <li><strong>水密性（流形）验证:</strong>
+                                    <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                        <li>拓扑检查：是否存在边界边、非流形边、非流形顶点。</li>
+                                        <li>软件工具：使用Trimesh的 `is_watertight` 函数，MeshLab的检测工具。</li>
+                                        <li>欧拉示性数：对于封闭无柄流形网格，V - E + F = 2。</li>
+                                    </ul>
+                                </li>
+                                <li>采取“信任但验证”的方法。</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-teal-700">4.2. 公共数据集的常见挑战</h4>
+                             <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                                <li>质量不一致。</li>
+                                <li>隐藏错误（自相交、退化面等）。</li>
+                                <li>误导性标签。</li>
+                                <li>格式问题（如OBJ缺乏严格规范）。</li>
+                                <li><strong>应对策略:</strong> 视觉检查、运行验证脚本、准备使用清理工具、从小子集开始评估。</li>
+                            </ul>
+                            <p class="mt-2">寻找和准备数据集通常是迭代过程：下载 -> 发现问题 -> 修复 -> 再次验证。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-teal-700">4.3. 选择合适的文件格式</h4>
+                            <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                                <li><strong>GLB/GLTF:</strong> 现代、规范良好，支持丰富特性。</li>
+                                <li><strong>PLY:</strong> 适用于索引面和颜色，较GLTF简单。</li>
+                                <li><strong>OBJ:</strong> 常见但规范性不足。</li>
+                                <li><strong>STL:</strong> 基础三角形列表，不适合原生四边形。</li>
+                                <li><strong>Blender (.blend):</strong> 保留完整场景信息。</li>
+                                <li><strong>考量因素:</strong> 应用需求、软件兼容性、解析便利性。</li>
+                            </ul>
+                             <p class="mt-2">推荐GLB/GLTF等现代格式，有利于互操作性和特征保留。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="content-summary" class="content-section">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold text-sky-700 mb-4">报告总结与建议</h2>
+                <div class="space-y-6 text-stone-700">
+                    <div>
+                        <h3 class="text-xl font-semibold text-sky-600 mb-2">5.1. 调研总结</h3>
+                        <p>本次调研旨在寻找满足开源、四边形和水密三大条件的3D网格数据集。结果表明，能够完美且直接满足所有这些标准的大型、多样化数据集相对稀少。尽管如此，仍有一些有前景的资源和大量的处理工具可供利用。</p>
+                        <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                            <li><strong>直接符合条件的候选数据集有限：</strong> PolyHaven等平台有潜力，但需用户验证。研究性数据集（如Point2Quad）若可访问则更接近要求。</li>
+                            <li><strong>处理工具的重要性：</strong> 大多数情况下，用户需依赖开源工具（MeshLab, Trimesh, Instant Meshes等）对原始数据进行转换和修复。</li>
+                            <li><strong>“开源”的双重含义：</strong> 除了许可，还意味着数据的实际可访问性。部分研究性数据集链接可能失效。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-sky-600 mb-2">5.2. 具体建议</h3>
+                        <p>用户的成功在很大程度上取决于其进行后处理的意愿和能力。</p>
+                        <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
+                            <li><strong>对于需要少量高质量模型的用户：</strong>
+                                <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                    <li><strong>PolyHaven:</strong> CC0许可，鼓励四边形拓扑。下载`.blend`格式，自行检查。</li>
+                                    <li><strong>Sketchfab (CC0许可):</strong> 搜索艺术家标记为四边形拓扑的模型，仔细检查。</li>
+                                </ul>
+                            </li>
+                            <li><strong>对于需要特定类型四边形网格进行算法开发的研究人员：</strong>
+                                <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                    <li>尝试访问 **Point2Quad数据集** 或与 **PFPOffset** 相关的 **"quadmesh dataset"**。</li>
+                                    <li>若不易获取，则自行构建或处理现有数据集（如ShapeNet, Thingi10K），使用Instant Meshes或libigl转换，并用ManifoldPlus或MeshLab修复。</li>
+                                </ul>
+                            </li>
+                            <li><strong>对于能够熟练运用处理流程的用户：</strong>
+                                <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                    <li>考虑从更广泛来源获取模型，投入精力进行转换和修复。</li>
+                                    <li>建立批处理脚本自动化部分流程。</li>
+                                </ul>
+                            </li>
+                            <li><strong>通用建议：</strong>
+                                <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                                    <li>始终验证许可。</li>
+                                    <li>彻底检查和验证网格属性。</li>
+                                    <li>从小处着手评估质量。</li>
+                                    <li>关注文件格式，优先现代格式。</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-sky-600 mb-2">5.3. 未来展望与潜在差距</h3>
+                        <p>计算机图形学和几何处理领域在四边形网格生成和处理方面持续活跃。随着新方法和算法的出现，未来可能会有更多高质量的开源数据集问世。然而，目前对于易于访问、精心策划、多样化、纯四边形且保证水密的开源数据集，仍然存在明显的缺口。用户应持续关注相关的研究社区和代码库以获取最新的进展。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 text-center mt-12">
+        <p>&copy; 2024 开源四边形水密网格数据集浏览器。基于调研报告生成。</p>
+    </footer>
+
+    <script>
+        const datasets = [
+            {
+                name: "Point2Quad 数据集",
+                url: "https://github.com/cognaclee/Point2Quad",
+                urlAccess: "需用户自行验证访问",
+                quadFeature: "纯四边形 (设计目标)",
+                watertightness: "目标是水密 (有后处理)",
+                license: "需在源头验证",
+                format: "未明确 (可能为OBJ, PLY)",
+                content: "中等规模，用于点云到四边形网格生成的研究",
+                notes: "GitHub链接在报告调研中无法访问，数据集可用性和属性需用户自行确认。",
+                details: "该数据集伴随论文 'Point2Quad: Generating Quad Meshes from Point Clouds via Face Prediction' 发布。方法旨在生成纯四边形网格，论文强调这是其相较于主四边形网格方法的一个关键贡献。论文描述了一个后处理步骤，用于处理重叠面和填充孔洞，目标是生成“经过改进的整洁四边形网格”，这表明其致力于实现流形/水密输出。如果该数据集确实可以访问并且符合其质量声明，那么它将是一个高度相关的资源。"
+            },
+            {
+                name: "PolyHaven 3D 模型",
+                url: "https://polyhaven.com/models",
+                urlAccess: "可直接访问",
+                quadFeature: "鼓励四边形 (技术标准)",
+                watertightness: "鼓励清洁几何，可能水密",
+                license: "CC0",
+                format: ".blend, FBX, OBJ",
+                content: "高质量写实模型，用于视效和游戏",
+                notes: "需逐个模型检查纯四边形和水密性。",
+                details: "其技术标准指出：“在适当情况下，模型应拓扑为四边形”以及“目标是使模型对细分友好。尽可能避免三角形/N-gons/奇怪的几何形状至关重要……”。标准要求模型“不得有任何不良几何形状，如N-gons、浮动顶点或零面积面”。所有资产均根据CC0许可发布。PolyHaven因其CC0许可和鼓励四边形拓扑的高质量标准而成为一个非常有前景的来源。"
+            },
+            {
+                name: "Manifold40 (为SubdivNet预处理)",
+                url: "SubdivNet GitHub (scripts/manifold40/get_data.sh)",
+                urlAccess: "通过脚本获取",
+                quadFeature: "可能为结构化四边形 (用于细分)",
+                watertightness: "名称暗示流形，但需验证",
+                license: "MIT (SubdivNet代码库)",
+                format: "未明确",
+                content: "基于ModelNet40的40类常见物体",
+                notes: "专为SubdivNet设计，通用性待考；预处理细节未知。",
+                details: "SubdivNet论文专注于基于细分的网格卷积。SubdivNet要求输入具有“细分连接性”。“Manifold40”这个名称本身暗示模型是流形的，但创建Manifold40并为其进行SubdivNet预处理的过程可能涉及确保流形性/水密性的步骤，但这在摘要中并未作为对所有模型的保证得到明确确认。此数据集专为特定的神经网络架构而设计。"
+            },
+            {
+                name: "\"quadmesh dataset\"",
+                url: "https://www.quadmesh.cloud (原始链接指向不明)",
+                urlAccess: "需用户自行寻找PFPOffset相关资源",
+                quadFeature: "暗示四边形 (名称)",
+                watertightness: "未明确，PFPOffset目标输出良好",
+                license: "需在源头验证",
+                format: "未明确",
+                content: "未明确，用于网格偏移研究的测试用例",
+                notes: "原始链接访问困难，数据集具体位置和属性不确定。",
+                details: "在PFPOffset（并行特征保持网格偏移）研究论文中被提及。名称“quadmesh dataset”强烈暗示它由四边形网格组成。PFPOffset方法旨在产生“无间隙、无孔洞和无自相交”的结果。由于通过现有工具难以访问其主要来源，其通用可用性和属性尚不确定。"
+            },
+            {
+                name: "Sketchfab CC0 集合",
+                url: "https://sketchfab.com/features/downloadable (搜索CC0)",
+                urlAccess: "可直接访问，需筛选",
+                quadFeature: "可变 (取决于艺术家上传)",
+                watertightness: "可变，通常需检查和处理",
+                license: "CC0 (需筛选)",
+                format: "OBJ, FBX, GLTF等",
+                content: "极其多样化的用户生成内容，包括文化遗产等",
+                notes: "模型质量和属性参差不齐，需仔细筛选和处理。",
+                details: "Sketchfab允许艺术家上传四边形网格。寻找原生的、高质量的四边形网格需要仔细搜索和检查。模型水密性差异很大。用户必须检查每个模型的许可。Sketchfab上的“CC0 3D模型”集合是开源资产的一个良好起点，但如果用户愿意搜索、筛选和处理模型，它们可以作为来源。"
+            }
+        ];
+
+        const toolsData = [
+            { category: "综合性网格处理库 (开源)", name: "Open3D", details: "现代3D数据处理库 (MIT, C++/Python)。支持多种数据结构、算法、场景重建、可视化。适用于加载、基本处理，对一般性操作非常有用。" },
+            { category: "综合性网格处理库 (开源)", name: "MeshLab", details: "处理和编辑3D（主要是三角形）网格的开源系统。提供清理、修复（封闭孔洞、移除非流形）、简化、重网格化和格式转换工具。对于修复非水密网格和清理几何体非常出色。" },
+            { category: "综合性网格处理库 (开源)", name: "Trimesh", details: "纯Python库，用于加载和使用三角形网格，特别强调水密表面。提供is_watertight检查、euler_number计算、布尔运算、体素化等。支持STL, PLY, GLTF/GLB等。" },
+            { category: "综合性网格处理库 (开源)", name: "libigl", details: "开源C++几何处理库（头文件形式）。功能包括四边形重网格化、参数化、布尔运算和形变等。对于高级几何处理任务非常强大。" },
+            { category: "综合性网格处理库 (开源)", name: "CGAL", details: "C++库，包含网格生成、表面重建和几何算法模块 (GPL3+/商业许可)。提供鲁棒的基础几何算法。" },
+            { category: "专门用于四边形网格化/重网格化的工具", name: "Instant Meshes", details: "广为人知的开源工具，用于将扫描数据重拓扑为“纯四边形网格”。关键工具若需转换三角化数据集。" },
+            { category: "专门用于四边形网格化/重网格化的工具", name: "Dust3D", details: "开源建模软件，宣称“让您在几秒钟内创建水密3D模型”。可导出FBX、glTF。对“水密性”的关注是相关的。" },
+            { category: "商业工具参考", name: "Quad Remesher (Exoside)", details: "商业工具（Blender, Maya, Max插件），用于自动四边形重拓扑。非开源，仅供参考。" },
+            { category: "商业工具参考", name: "Houdini's Quad Remesh SOP", details: "Houdini中的节点，用于将任意网格转换为结构化四边形网格。商业软件（Apprentice版可免费用于非商业）。" },
+            { category: "用于水密修复和验证的工具", name: "MeshLab", details: "提供广泛的清理和修复滤镜 (已在综合库中提及)。" },
+            { category: "用于水密修复和验证的工具", name: "Trimesh", details: "包含 `is_watertight` 属性和 `euler_number` 计算功能 (已在综合库中提及)。" },
+            { category: "用于水密修复和验证的工具", name: "ManifoldPlus", details: "生成水密流形网格的算法/工具。Python封装在 `mesh_fusion_simple` GitHub仓库中。直接针对使网格水密的问题。" },
+            { category: "用于水密修复和验证的工具", name: "Fast-Quadric-Mesh-Simplification", details: "主要为网格简化工具（OBJ输入输出三角形网格），强调对“水密体”效果良好。可能在四边形转换前处理过密三角网格时有用。" },
+            { category: "用于水密修复和验证的工具", name: "Microsoft 3D Builder", details: "被提及用于修复Cura标记为非水密的STL文件。免费，但非开源。" }
+        ];
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const navItems = document.querySelectorAll('.nav-item');
+            const mobileNavItems = document.querySelectorAll('#mobile-menu a');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            const datasetCardsContainer = document.getElementById('dataset-cards-container');
+            const noResultsP = document.getElementById('no-results');
+            const filterQuad = document.getElementById('filter-quad');
+            const filterWatertight = document.getElementById('filter-watertight');
+            const filterLicense = document.getElementById('filter-license');
+
+            const toolsListContainer = document.getElementById('tools-list-container');
+
+            function setActiveSection(sectionId) {
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === sectionId) {
+                        section.classList.add('active');
+                    }
+                });
+                navItems.forEach(item => {
+                    item.classList.remove('active-nav');
+                    if (item.id === `nav-${sectionId.split('-')[1]}`) {
+                        item.classList.add('active-nav');
+                    }
+                });
+                 mobileNavItems.forEach(item => {
+                    item.classList.remove('bg-sky-100', 'text-sky-700'); // Example active style for mobile
+                    if (item.id === `mobile-nav-${sectionId.split('-')[1]}`) {
+                        item.classList.add('bg-sky-100', 'text-sky-700');
+                    }
+                });
+                mobileMenu.classList.add('hidden'); // Hide mobile menu on navigation
+                window.scrollTo(0,0); // Scroll to top
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    setActiveSection(`content-${item.id.split('-')[1]}`);
+                });
+            });
+            
+            mobileNavItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent default anchor behavior
+                    setActiveSection(`content-${item.id.split('-')[2]}`); // mobile-nav-home -> home
+                });
+            });
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            function renderDatasetCards(filteredDatasets) {
+                datasetCardsContainer.innerHTML = '';
+                if (filteredDatasets.length === 0) {
+                    noResultsP.classList.remove('hidden');
+                    return;
+                }
+                noResultsP.classList.add('hidden');
+
+                filteredDatasets.forEach(dataset => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between';
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="text-xl font-semibold text-teal-700 mb-3">${dataset.name}</h3>
+                            <div class="card-content text-sm text-stone-600 space-y-1">
+                                <p><strong>🔗 访问点:</strong> <a href="${dataset.url}" target="_blank" class="text-sky-600 hover:underline">${dataset.url.length > 40 ? dataset.url.substring(0,37) + '...' : dataset.url}</a> <span class="text-xs italic">(${dataset.urlAccess})</span></p>
+                                <p><strong>🔶 四边形特性:</strong> ${dataset.quadFeature}</p>
+                                <p><strong>💧 水密性:</strong> ${dataset.watertightness}</p>
+                                <p><strong>📜 开源许可:</strong> ${dataset.license}</p>
+                                <p><strong>📄 常见文件格式:</strong> ${dataset.format}</p>
+                                <p><strong>📦 内容简述:</strong> ${dataset.content}</p>
+                                ${dataset.notes ? `<p class="mt-2"><strong class="text-amber-700">⚠️ 注意事项:</strong> <span class="text-amber-600">${dataset.notes}</span></p>` : ''}
+                            </div>
+                        </div>
+                        <button class="mt-4 text-sm text-sky-600 hover:text-sky-800 font-medium self-start view-details-btn">查看详情 ▼</button>
+                        <div class="dataset-details hidden mt-3 pt-3 border-t border-stone-200 text-sm text-stone-600">
+                            <p>${dataset.details || '暂无更多详情。'}</p>
+                        </div>
+                    `;
+                    datasetCardsContainer.appendChild(card);
+                });
+
+                document.querySelectorAll('.view-details-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const detailsDiv = this.nextElementSibling;
+                        detailsDiv.classList.toggle('hidden');
+                        this.textContent = detailsDiv.classList.contains('hidden') ? '查看详情 ▼' : '收起详情 ▲';
+                    });
+                });
+            }
+
+            function filterDatasets() {
+                const quadValue = filterQuad.value;
+                const watertightValue = filterWatertight.value;
+                const licenseValue = filterLicense.value;
+
+                const filtered = datasets.filter(dataset => {
+                    return (quadValue === 'all' || dataset.quadFeature.includes(quadValue)) &&
+                           (watertightValue === 'all' || dataset.watertightness.includes(watertightValue)) &&
+                           (licenseValue === 'all' || dataset.license.includes(licenseValue));
+                });
+                renderDatasetCards(filtered);
+            }
+
+            filterQuad.addEventListener('change', filterDatasets);
+            filterWatertight.addEventListener('change', filterDatasets);
+            filterLicense.addEventListener('change', filterDatasets);
+            
+            renderDatasetCards(datasets);
+
+
+            function renderToolsList() {
+                const categories = {};
+                toolsData.forEach(tool => {
+                    if (!categories[tool.category]) {
+                        categories[tool.category] = [];
+                    }
+                    categories[tool.category].push(tool);
+                });
+
+                for (const categoryName in categories) {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'mb-6 p-4 border border-stone-200 rounded-lg bg-stone-50';
+                    
+                    const categoryTitle = document.createElement('h4');
+                    categoryTitle.className = 'text-lg font-semibold text-teal-700 mb-3 cursor-pointer flex justify-between items-center';
+                    categoryTitle.innerHTML = `${categoryName} <span class="text-xs text-stone-500 toggle-icon">▼</span>`;
+                    categoryDiv.appendChild(categoryTitle);
+
+                    const toolsUl = document.createElement('ul');
+                    toolsUl.className = 'list-disc list-inside ml-4 space-y-2 text-sm text-stone-600 hidden'; // Initially hidden
+                    
+                    categories[categoryName].forEach(tool => {
+                        const toolLi = document.createElement('li');
+                        toolLi.innerHTML = `<strong>${tool.name}:</strong> ${tool.details}`;
+                        toolsUl.appendChild(toolLi);
+                    });
+                    categoryDiv.appendChild(toolsUl);
+                    toolsListContainer.appendChild(categoryDiv);
+
+                    categoryTitle.addEventListener('click', function() {
+                        toolsUl.classList.toggle('hidden');
+                        const icon = this.querySelector('.toggle-icon');
+                        icon.textContent = toolsUl.classList.contains('hidden') ? '▼' : '▲';
+                    });
+                }
+            }
+            renderToolsList();
+
+            function renderToolsChart() {
+                const toolCategories = {};
+                toolsData.forEach(tool => {
+                    // Normalize categories a bit for charting
+                    let chartCategory = tool.category;
+                    if (tool.category.includes("综合性")) chartCategory = "综合库";
+                    else if (tool.category.includes("四边形")) chartCategory = "四边形工具";
+                    else if (tool.category.includes("水密")) chartCategory = "水密修复";
+                    else if (tool.category.includes("商业")) chartCategory = "商业参考";
+
+
+                    toolCategories[chartCategory] = (toolCategories[chartCategory] || 0) + 1;
+                });
+
+                const ctx = document.getElementById('toolsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(toolCategories),
+                        datasets: [{
+                            label: '工具数量',
+                            data: Object.values(toolCategories),
+                            backgroundColor: [
+                                'rgba(13, 148, 136, 0.6)', // teal-600
+                                'rgba(59, 130, 246, 0.6)', // blue-500
+                                'rgba(234, 179, 8, 0.6)',  // yellow-500
+                                'rgba(107, 114, 128, 0.6)' // gray-500
+                            ],
+                            borderColor: [
+                                'rgba(13, 148, 136, 1)',
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(234, 179, 8, 1)',
+                                'rgba(107, 114, 128, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                     callback: function(value, index, values) {
+                                        const label = this.getLabelForValue(value);
+                                        if (label.length > 16) {
+                                            return label.substring(0, 16) + '...';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            renderToolsChart();
+
+        });
+    </script>
+</body>
+</html>

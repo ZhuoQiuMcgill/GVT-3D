@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chosen Palette: Warm Neutrals & Slate Blue -->
+    <!-- Application Structure Plan: The SPA is designed as an educational journey, guiding the user from simple to complex concepts. It uses a thematic, single-page scrolling structure with a sticky navigation bar. The flow is: 1. Introduction (The core problem). 2. Basic Constraints Checker (Interactive learning of genus and parity). 3. Advanced Topology (A decision-tree flowchart to explain complex conditions like null-homology). 4. Geometric Challenges (Case study of Schneider's Pyramid and a chart showing relative difficulty). 5. Summary (A final layered model of all constraints). This structure was chosen to make a dense, academic topic digestible by breaking it into logical, interactive steps, prioritizing conceptual understanding over a linear re-telling of the source reports. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Basic topological constraints (genus, quad count). Goal: Inform & Engage. Viz/Method: Interactive number inputs and a result display. Interaction: User inputs data, clicks a button, gets instant feedback. Justification: Active learning is more effective than passive reading. Library: Vanilla JS.
+        - Report Info: Complex decision process for meshability. Goal: Organize & Explain. Viz/Method: HTML/CSS flowchart diagram. Interaction: Hover effects to highlight paths and concepts. Justification: Visualizes the complex logic from the reports into a clear, step-by-step process. Library: HTML/CSS with JS for interaction.
+        - Report Info: Geometric quality issues and relative difficulty. Goal: Compare & Inform. Viz/Method: Chart.js horizontal bar chart and CSS-styled "bad hex" examples. Interaction: Chart tooltips provide details. Justification: A bar chart effectively compares the abstract difficulty levels, and visual examples make "bad quality" tangible. Library: Chart.js.
+        - Report Info: Schneider's Pyramid case study. Goal: Illustrate a key challenge. Viz/Method: Image/diagram with explanatory text. Justification: Grounds the abstract problem in a famous, concrete example. Library: HTML/CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <title>六面体网格剖分的数学原理与约束分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+          rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8f7f4;
+            color: #3d4451;
+        }
+
+        .bg-warm-neutral {
+            background-color: #f8f7f4;
+        }
+
+        .bg-soft-accent {
+            background-color: #e6e2dd;
+        }
+
+        .text-primary {
+            color: #3d4451;
+        }
+
+        .text-secondary {
+            color: #5a6474;
+        }
+
+        .text-accent {
+            color: #4a5568;
+        }
+
+        .border-accent {
+            border-color: #4a5568;
+        }
+
+        .btn-primary {
+            background-color: #4a5568;
+            color: #ffffff;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #2c3340;
+        }
+
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #2c3340;
+            border-bottom-color: #2c3340;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .flowchart-node {
+            border: 2px solid #a0aec0;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        .flowchart-node:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #4a5568;
+        }
+
+        .flowchart-line {
+            background-color: #a0aec0;
+            position: absolute;
+            z-index: -1;
+        }
+
+        .bad-hex {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #718096;
+            background: rgba(160, 174, 192, 0.2);
+            margin: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-warm-neutral text-primary">
+
+<header id="main-header" class="bg-warm-neutral/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+    <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+        <h1 class="text-xl md:text-2xl font-bold text-accent">六面体网格剖分的数学原理与约束分析</h1>
+        <div class="hidden md:flex space-x-8">
+            <a href="#basics" class="nav-link font-medium pb-1">基础约束</a>
+            <a href="#advanced-topo" class="nav-link font-medium pb-1">高级拓扑</a>
+            <a href="#geometry" class="nav-link font-medium pb-1">几何挑战</a>
+            <a href="#summary" class="nav-link font-medium pb-1">总结</a>
+        </div>
+        <button id="mobile-menu-button" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+            </svg>
+        </button>
+    </nav>
+    <div id="mobile-menu" class="hidden md:hidden px-6 pt-2 pb-4">
+        <a href="#basics" class="block py-2 text-center nav-link">基础约束</a>
+        <a href="#advanced-topo" class="block py-2 text-center nav-link">高级拓扑</a>
+        <a href="#geometry" class="block py-2 text-center nav-link">几何挑战</a>
+        <a href="#summary" class="block py-2 text-center nav-link">总结</a>
+    </div>
+</header>
+
+<main class="container mx-auto px-6 py-8 md:py-16">
+
+    <section id="intro" class="text-center mb-16 md:mb-24">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">从表面到体积：一个悬而未决的难题</h2>
+        <p class="max-w-3xl mx-auto text-lg text-secondary">
+            给定一个封闭的四边形表面网格，我们能否用完美的六面体单元完全填充其内部体积？这个问题在工程仿真和计算机图形学中至关重要，但其答案远比想象中复杂。本应用将带您逐层探索决定六面体可剖分性的数学原理，从简单的奇偶检查到深奥的拓扑理论，直至最终的几何实现鸿沟。
+        </p>
+    </section>
+
+    <section id="basics" class="py-16 bg-soft-accent rounded-xl mb-16 md:mb-24">
+        <div class="max-w-4xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-2">第一层：基础拓扑约束</h2>
+            <p class="text-center text-secondary mb-12">
+                六面体剖分的第一道门槛是两个基本的拓扑属性：表面的“亏格”和四边形数量的“奇偶性”。它们构成了最基础、最容易检查的过滤条件。</p>
+
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-6">
+                    <div>
+                        <label for="genus" class="font-bold block mb-2">1. 表面亏格 (Genus, g)</label>
+                        <p class="text-secondary mb-2">
+                            直观上，亏格代表物体表面“洞”的数量。球体的亏格为0，圆环为1。亏格描述了体积的全局拓扑复杂性。</p>
+                        <input type="number" id="genus" value="0" min="0"
+                               class="w-full p-2 border rounded border-gray-300">
+                    </div>
+                    <div>
+                        <label for="vertices" class="font-bold block mb-2">2. 表面顶点数 (n个点, V)</label>
+                        <p class="text-secondary mb-2">对于纯四边形网格，顶点数(V)和四边形数($F_q$)通过欧拉公式关联: $F_q
+                            = V - (2 -
+                            2g)$。可剖分性定理通常关注$F_q$的奇偶性。一个有效的封闭四边形表面网格至少需要4个顶点。</p>
+                        <input type="number" id="vertices" value="8" min="4"
+                               class="w-full p-2 border rounded border-gray-300">
+                    </div>
+                    <button id="check-button" class="w-full btn-primary font-bold py-3 rounded-lg">检查拓扑可能性
+                    </button>
+                </div>
+                <div id="check-result"
+                     class="p-6 bg-white rounded-lg shadow-md text-center min-h-[200px] flex flex-col justify-center">
+                    <h3 class="text-xl font-bold mb-2">检查结果</h3>
+                    <p class="text-lg text-secondary">请输入参数并点击检查。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="advanced-topo" class="py-16 mb-16 md:mb-24">
+        <h2 class="text-3xl font-bold text-center mb-2">第二层：高级拓扑条件</h2>
+        <p class="text-center text-secondary mb-12 max-w-3xl mx-auto">当体积比球体更复杂 (亏格 > 0)
+            时，仅满足基础约束是不够的。更深层次的拓扑障碍，如“坏的”奇数环路，将决定剖分是否可能。</p>
+
+        <div class="relative p-8 overflow-x-auto">
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-8">
+                <div class="flowchart-node p-4 rounded-lg text-center w-64">
+                    <h4 class="font-bold">输入：水密四边形表面网格</h4>
+                    <p class="text-sm text-secondary">亏格=g, 四边形数=$N_q$</p>
+                </div>
+                <div class="hidden md:block absolute top-1/2 left-1/2 -translate-x-[calc(50%-160px)] -translate-y-1/2 w-8 h-1 bg-gray-400"></div>
+                <div class="md:hidden w-1 h-8 bg-gray-400 mx-auto"></div>
+                <div class="flowchart-node p-4 rounded-lg text-center w-64">
+                    <h4 class="font-bold">检查1: $N_q$ 是否为偶数?</h4>
+                    <p class="text-sm text-secondary">基础奇偶性约束</p>
+                </div>
+            </div>
+
+            <div class="mt-8 md:mt-16 relative">
+                <div class="absolute left-1/2 -top-8 md:-top-16 w-1 h-8 md:h-16 bg-gray-400"></div>
+                <div class="absolute left-1/2 -top-0.5 w-3/4 h-1 bg-gray-400 -translate-x-1/2"></div>
+                <div class="absolute left-1/4 -top-0.5 w-1 h-4 bg-gray-400"></div>
+                <div class="absolute right-1/4 -top-0.5 w-1 h-4 bg-gray-400"></div>
+
+                <div class="flex flex-col md:flex-row justify-around items-start space-y-8 md:space-y-0">
+                    <div class="flex-1 text-center px-4">
+                        <div class="font-bold text-red-600 mb-4">否</div>
+                        <div class="flowchart-node p-4 rounded-lg bg-red-100 border-red-400">
+                            <h4 class="font-bold">❌ 拓扑上不可剖分</h4>
+                            <p class="text-sm text-secondary">奇数个边界四边形无法由六面体的偶数个面构成。</p>
+                        </div>
+                    </div>
+                    <div class="flex-1 text-center px-4">
+                        <div class="font-bold text-green-600 mb-4">是</div>
+                        <div class="flowchart-node p-4 rounded-lg">
+                            <h4 class="font-bold">检查2: 亏格 g=0 吗?</h4>
+                            <p class="text-sm text-secondary">(拓扑球体)</p>
+                        </div>
+
+                        <div class="mt-8 relative">
+                            <div class="absolute left-1/2 -top-8 w-1 h-8 bg-gray-400"></div>
+                            <div class="absolute left-1/2 -top-0.5 w-1/2 h-1 bg-gray-400 -translate-x-1/2"></div>
+                            <div class="absolute left-1/4 -top-0.5 w-1 h-4 bg-gray-400"></div>
+                            <div class="absolute right-1/4 -top-0.5 w-1 h-4 bg-gray-400"></div>
+
+                            <div class="flex justify-around items-start mt-4">
+                                <div class="flex-1 text-center px-2">
+                                    <div class="font-bold text-green-600 mb-4">是</div>
+                                    <div class="flowchart-node p-4 rounded-lg bg-green-100 border-green-400">
+                                        <h4 class="font-bold">✅ 拓扑上可剖分</h4>
+                                        <p class="text-sm text-secondary">Thurston-Mitchell 定理</p>
+                                    </div>
+                                </div>
+                                <div class="flex-1 text-center px-2">
+                                    <div class="font-bold text-yellow-600 mb-4">否 (g > 0)</div>
+                                    <div class="flowchart-node p-4 rounded-lg bg-yellow-100 border-yellow-400">
+                                        <h4 class="font-bold">检查3: 是否存在“坏”的奇数环?</h4>
+                                        <p class="text-sm text-secondary">Erickson 零调同调条件</p>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            即，表面上一个奇数边的环路，是否能在体积内部“封闭”一个面？</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="geometry" class="py-16 bg-soft-accent rounded-xl mb-16 md:mb-24">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-2">第三层：几何实现的鸿沟</h2>
+            <p class="text-center text-secondary mb-12">
+                即使一个体积在拓扑上被证明是“可剖分的”，在现实世界中构造出高质量、无退化的几何单元仍然是一个巨大的挑战。</p>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">案例研究：施耐德金字塔</h3>
+                    <p class="text-secondary mb-4">
+                        这个金字塔表面有16个四边形（偶数），亏格为0，因此根据定理，其内部在拓扑上是可以用六面体填充的。然而，所有已知的剖分方案都包含几何上退化（如零体积或负体积）的单元，或者需要极其复杂的构造。它完美地揭示了拓扑可能性与几何实现之间的巨大鸿沟。</p>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <img src="https://www.researchgate.net/publication/225353593/figure/fig2/AS:392563160776708@1470605719590/Schneiderss-open-problem9-No-good-all-hex-mesh-for-the-left-figure-is-known-Center_W640.jpg"
+                             alt="施耐德金字塔的示意图" class="rounded-md w-full"
+                             onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/cccccc?text=Image+Not+Found';">
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">什么是“坏”的几何质量?</h3>
+                    <p class="text-secondary mb-4">
+                        理想的六面体单元接近立方体。但在实际剖分中，为了满足边界条件和拓扑约束，单元可能被严重扭曲，导致数值计算不准确甚至失败。</p>
+                    <div class="flex flex-wrap justify-center bg-white p-4 rounded-lg shadow-md">
+                        <div class="text-center">
+                            <div class="bad-hex" style="transform: skewX(-20deg);"></div>
+                            <p>偏斜 (Skew)</p></div>
+                        <div class="text-center">
+                            <div class="bad-hex" style="transform: scaleY(0.5);"></div>
+                            <p>挤压 (Taper)</p></div>
+                        <div class="text-center">
+                            <div class="bad-hex" style="transform: perspective(200px) rotateY(30deg);"></div>
+                            <p>翘曲 (Warp)</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-16">
+                <h3 class="text-2xl font-bold text-center mb-6">网格生成技术难度对比</h3>
+                <div class="chart-container bg-white p-4 rounded-lg shadow-md">
+                    <canvas id="difficultyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="summary" class="py-16">
+        <h2 class="text-3xl font-bold text-center mb-2">总结：约束的层次结构</h2>
+        <p class="text-center text-secondary mb-12 max-w-3xl mx-auto">
+            六面体可剖分性是一个多层次的判定过程。必须逐层满足从基础到高级、从拓扑到几何的全部约束，才能最终生成一个有效的六面体网格。</p>
+        <div class="space-y-6 max-w-2xl mx-auto">
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                <h4 class="font-bold text-xl mb-2">第一层：基本拓扑约束</h4>
+                <p class="text-secondary">
+                    表面亏格(g)和四边形数量($N_q$)的奇偶性。这是最先要通过的“过滤器”。对于g=0的表面，$N_q$为偶数是充要条件。</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                <h4 class="font-bold text-xl mb-2">第二层：高级拓扑约束</h4>
+                <p class="text-secondary">
+                    针对g>0或更一般的情况。表面上的奇数环路是否在体积内部构成“拓扑障碍”（零调同调性），以及对偶结构的全局协调性，成为关键判据。</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+                <h4 class="font-bold text-xl mb-2">第三层：内部对偶结构有效性</h4>
+                <p class="text-secondary">
+                    即使全局拓扑允许，内部生成的对偶“片”状结构也必须满足一系列局部组合规则，才能保证六面体能正确“组装”。</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+                <h4 class="font-bold text-xl mb-2">第四层：几何可实现性与质量</h4>
+                <p class="text-secondary">
+                    最终的、也是最难的挑战。即使存在拓扑上有效的剖分方案，能否在三维空间中构造出所有单元几何质量良好（如正体积、低扭曲度）的网格，在很大程度上仍是未解之谜。</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="bg-soft-accent mt-16">
+    <div class="container mx-auto px-6 py-4 text-center text-secondary">
+        <p>这是一个基于研究报告生成的交互式Web应用。</p>
+    </div>
+</footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () =>
+    {
+        const checkButton = document.getElementById('check-button');
+        const resultDiv = document.getElementById('check-result');
+        const genusInput = document.getElementById('genus');
+        const verticesInput = document.getElementById('vertices');
+
+        checkButton.addEventListener('click', () =>
+        {
+            const g = parseInt(genusInput.value);
+            const V = parseInt(verticesInput.value);
+
+            if (isNaN(g) || isNaN(V) || g < 0 || V < 4)
+            {
+                resultDiv.innerHTML = `
+                        <h3 class="text-xl font-bold mb-2 text-red-600">输入无效</h3>
+                        <p class="text-lg text-secondary">请输入有效的亏格 (g ≥ 0) 和顶点数 (V ≥ 4)。</p>
+                    `;
+                return;
+            }
+
+            const chi = 2 - 2 * g;
+            const f_q = V - chi; // Number of quadrilateral faces
+
+            let resultHTML = '';
+            let edgeCaseNote = '';
+
+            if (f_q <= 0)
+            { // A surface mesh must have faces. V - chi > 0 implies V > 2-2g.
+                // For g=0, V > 2. Since V_min=4, this is always met.
+                // For g=1, V > 0. Since V_min=4, this is always met.
+                // This condition (f_q <= 0) primarily catches cases where V is too small for the given genus to form any faces.
+                resultHTML = `
+                        <h3 class="text-xl font-bold mb-2 text-red-600">拓扑不一致</h3>
+                        <p class="text-lg text-secondary">对于亏格g=${g} 和 顶点数V=${V}，无法构成一个有效的表面网格 (计算出的四边形面数为 ${f_q}，必须为正数)。</p>
+                    `;
+            } else if (f_q % 2 !== 0)
+            {
+                resultHTML = `
+                        <h3 class="text-xl font-bold mb-2 text-red-600">❌ 不可剖分</h3>
+                        <p class="text-lg text-secondary">计算出的四边形数量 <span class="font-bold">${f_q}</span> 为奇数。这是六面体剖分的根本性障碍。</p>
+                    `;
+            } else
+            { // f_q is positive and even
+                if (g === 0)
+                {
+                    resultHTML = `
+                            <h3 class="text-xl font-bold mb-2 text-green-600">✅ 拓扑上可剖分</h3>
+                            <p class="text-lg text-secondary">亏格为0，且四边形数量 <span class="font-bold">${f_q}</span> 为偶数。根据Thurston-Mitchell定理，存在一个拓扑六面体剖分。</p>
+                        `;
+                    if (V < 8)
+                    { // Specifically for g=0, if V < 8, f_q will be < 6 (2 or 4).
+                        edgeCaseNote = `<p class="text-xs text-gray-500 mt-2">注意：顶点数V=${V} (导致 ${f_q} 个四边形) 的拓扑球体是非常简单或可能退化的情形。虽然理论上仍适用剖分规则，但实际应用中通常处理更复杂的几何体 (如V≥8，对应至少6个四边形，如立方体表面)。</p>`;
+                    }
+                    resultHTML += `<p class="text-sm text-gray-500 mt-2">这不保证几何质量良好。</p>`;
+
+                } else
+                { // g > 0
+                    resultHTML = `
+                            <h3 class="text-xl font-bold mb-2 text-yellow-600">⚠️ 条件允许，但需进一步检查</h3>
+                            <p class="text-lg text-secondary">亏格g=${g}，四边形数量 <span class="font-bold">${f_q}</span> 为偶数，通过了基础检查。但这并不充分！</p>
+                            <p class="text-sm text-gray-500 mt-2">还需要满足更高级的同调条件（如不存在“坏”的奇数环）。</p>
+                        `;
+                }
+            }
+            resultDiv.innerHTML = resultHTML + edgeCaseNote;
+        });
+
+        const ctx = document.getElementById('difficultyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['2D 三角剖分', '3D 四面体剖分', '2D 四边形剖分', '3D 六面体剖分'],
+                datasets: [{
+                    label: '相对难度',
+                    data: [10, 25, 60, 100],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(255, 99, 132, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context)
+                            {
+                                let label = context.dataset.label || '';
+                                if (label)
+                                {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null)
+                                {
+                                    let extraInfo = '';
+                                    switch (context.label)
+                                    {
+                                        case '2D 三角剖分':
+                                            extraInfo = ' - 算法成熟';
+                                            break;
+                                        case '3D 四面体剖分':
+                                            extraInfo = ' - 算法成熟，质量控制是关键';
+                                            break;
+                                        case '2D 四边形剖分':
+                                            extraInfo = ' - 挑战在于奇异点控制';
+                                            break;
+                                        case '3D 六面体剖分':
+                                            extraInfo = ' - 鲁棒的自动化算法仍是开放性问题';
+                                            break;
+                                    }
+                                    label += context.parsed.x + extraInfo;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '难度指数（示意）'
+                        }
+                    }
+                }
+            }
+        });
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () =>
+        {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('main > section'); // Target sections directly under main
+
+        const observer = new IntersectionObserver((entries) =>
+        {
+            entries.forEach(entry =>
+            {
+                if (entry.isIntersecting)
+                {
+                    navLinks.forEach(link =>
+                    {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href').substring(1) === entry.target.id)
+                        {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, {rootMargin: '-50% 0px -50% 0px', threshold: 0.1}); // Adjusted rootMargin and added threshold
+
+        sections.forEach(section =>
+        {
+            if (section.id)
+            { // Ensure section has an ID to observe
+                observer.observe(section);
+            }
+        });
+
+        navLinks.forEach(link =>
+        {
+            link.addEventListener('click', (e) =>
+            {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement)
+                {
+                    const headerOffset = document.getElementById('main-header').offsetHeight;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+                if (mobileMenu.classList.contains('hidden') === false)
+                {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>

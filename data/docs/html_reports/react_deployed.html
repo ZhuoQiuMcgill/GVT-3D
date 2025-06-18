@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从Windows 11/WebStorm部署React应用至Ubuntu 24.04 (Apache2) 权威指南</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --info: #4895ef;
+            --warning: #f72585;
+            --danger: #e63946;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border-radius: 8px;
+            --font-body: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-code: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: #f5f5f7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 40px 0;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 240px;
+            height: 240px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+        }
+
+        nav {
+            background-color: white;
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 0.95rem;
+            padding: 5px 0;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        main {
+            padding: 40px 0;
+        }
+
+        section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-light);
+            color: var(--secondary);
+            position: relative;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 80px;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin: 25px 0 15px;
+            color: var(--primary);
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        .step-container {
+            margin-bottom: 30px;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            background-color: var(--primary);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--primary);
+        }
+
+        code {
+            font-family: var(--font-code);
+            background-color: var(--gray-light);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        pre {
+            background-color: var(--dark);
+            color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: #f8f9fa;
+            padding: 0;
+        }
+
+        .command {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            position: relative;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .command::before {
+            content: '$';
+            color: #b5cea8;
+            margin-right: 10px;
+        }
+
+        .note {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border-left: 4px solid var(--info);
+        }
+
+        .warning {
+            background-color: #fff5f5;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            border-left: 4px solid var(--danger);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        thead {
+            background-color: var(--gray-light);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        th {
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.01);
+        }
+
+        .workflow {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        .workflow::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 25px;
+            height: 2px;
+            background-color: var(--gray-light);
+            z-index: 1;
+        }
+
+        .workflow-step {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 14%;
+            min-width: 120px;
+            margin-bottom: 20px;
+        }
+
+        .workflow-icon {
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-weight: bold;
+            border: 2px solid var(--primary);
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+
+        .workflow-step:hover .workflow-icon {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .workflow-label {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 30px 0;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .workflow {
+                justify-content: center;
+                gap: 20px;
+            }
+
+            .workflow::before {
+                display: none;
+            }
+
+            .workflow-step {
+                width: calc(50% - 20px);
+            }
+
+            .nav-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        .tab-container {
+            margin: 20px 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid var(--gray-light);
+            margin-bottom: 15px;
+        }
+
+        .tab-button {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--gray);
+            transition: all 0.3s;
+            margin-right: 5px;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .tab-button:hover:not(.active) {
+            border-bottom: 2px solid var(--gray-light);
+            color: var(--dark);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 15px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 100;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px);
+        }
+
+        .back-to-top svg {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-to-top" id="backToTop">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <header>
+        <div class="container header-content">
+            <h1>将React项目前端代码部署到Ubuntu 24.04 (Apache2) 的权威指南</h1>
+            <p class="subtitle">本指南详细阐述了将一个在Windows 11上使用WebStorm开发的React项目，部署到运行Ubuntu 24.04并配置了Apache2作为Web服务器的生产环境虚拟机的完整过程。我们将重点关注从项目构建、文件从Windows传输到Ubuntu服务器，直至Apache2服务器的配置，包括处理React单页应用（SPA）客户端路由所需的关键URL重写规则。</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container nav-container">
+            <div class="logo">React部署指南</div>
+            <ul class="nav-links">
+                <li><a href="#intro">引言</a></li>
+                <li><a href="#prerequisites">先决条件</a></li>
+                <li><a href="#deployment">部署步骤</a></li>
+                <li><a href="#troubleshooting">故障排除</a></li>
+                <li><a href="#enhancements">增强建议</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section id="intro">
+            <h2>引言</h2>
+            <p>将现代前端应用程序（如使用React构建的应用程序）部署到生产服务器是开发生命周期的关键一步。本指南旨在提供一个全面、专业的方法，用于在运行Ubuntu 24.04的虚拟机上，使用Apache2作为Web服务器，部署React项目的前端代码。</p>
+            <p>报告将详细介绍从项目构建、文件传输到Apache2服务器配置（包括处理客户端路由的关键URL重写规则）的每一个步骤。</p>
+
+            <div class="workflow">
+                <div class="workflow-step">
+                    <div class="workflow-icon">1</div>
+                    <div class="workflow-label">构建React应用</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">2</div>
+                    <div class="workflow-label">传输文件</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">3</div>
+                    <div class="workflow-label">安装Apache2</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">4</div>
+                    <div class="workflow-label">配置服务器</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">5</div>
+                    <div class="workflow-label">启用站点</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">6</div>
+                    <div class="workflow-label">测试部署</div>
+                </div>
+                <div class="workflow-step">
+                    <div class="workflow-icon">7</div>
+                    <div class="workflow-label">排除故障</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="prerequisites">
+            <h2>先决条件</h2>
+            <p>在开始之前，请确保您已具备以下条件：</p>
+            <ul style="list-style-type: none; padding-left: 0;">
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    一个在Windows 11上的WebStorm中已完成并准备好进行生产部署的React项目。
+                </li>
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    在您的Windows 11本地开发环境中安装了Node.js和npm（或yarn）包管理器。
+                </li>
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    拥有对Ubuntu 24.04虚拟机的SSH访问权限，并且具有sudo（超级用户）权限。
+                </li>
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    Apache2已安装在Ubuntu服务器上，或准备按照本指南进行安装。
+                </li>
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    您的Windows 11计算机上安装了SSH客户端。Windows PowerShell内置了scp和ssh命令，或者您也可以使用如PuTTY (for SSH) 和WinSCP (for SFTP/SCP GUI) 等工具。
+                </li>
+                <li style="margin-bottom: 10px; padding-left: 25px; position: relative;">
+                    <span style="position: absolute; left: 0; color: var(--success);">✓</span>
+                    熟悉基本的Linux命令行操作。
+                </li>
+            </ul>
+        </section>
+
+        <section id="deployment">
+            <h2>部署步骤</h2>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">在Windows 11上为生产环境构建React应用 (使用WebStorm)</div>
+                </div>
+                <p>在部署之前，您的React应用需要被编译和优化为生产版本。</p>
+                
+                <h3>在WebStorm中构建项目</h3>
+                <ol>
+                    <li><strong>在WebStorm中打开项目：</strong>启动WebStorm并打开您的React项目。</li>
+                    <li><strong>执行构建命令：</strong>打开WebStorm的内置终端 (通常通过 Alt+F12 或视图菜单访问)。</li>
+                </ol>
+                
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="changeTab(event, 'npm-build')">使用npm</button>
+                        <button class="tab-button" onclick="changeTab(event, 'yarn-build')">使用yarn</button>
+                    </div>
+                    
+                    <div id="npm-build" class="tab-content active">
+                        <div class="command">npm run build</div>
+                    </div>
+                    
+                    <div id="yarn-build" class="tab-content">
+                        <div class="command">yarn build</div>
+                    </div>
+                </div>
+                
+                <p>此命令会创建一个名为 <code>build</code> 的目录（或者在 package.json 中自定义的输出目录，如 <code>dist</code>）。此目录包含了应用程序的所有静态资源，这些资源是经过优化的，可以直接部署到Web服务器上。</p>
+                
+                <p><code>build</code> 目录的主要内容通常包括：</p>
+                <ul>
+                    <li><code>index.html</code>: 单页应用程序 (SPA) 的主入口HTML文件。</li>
+                    <li><code>static/js/</code>: 包含编译和压缩后的JavaScript文件。文件名通常包含哈希值（例如 <code>main.[hash].js</code>），这有助于实现长期缓存。</li>
+                    <li><code>static/css/</code>: 包含编译和压缩后的CSS文件，文件名同样可能包含哈希值。</li>
+                    <li>其他静态资源，如图片、字体等，也会被复制到此目录中。</li>
+                </ul>
+                
+                <div class="note">
+                    <strong>注意：</strong> 文件名中包含的唯一哈希值是基于文件内容生成的。这种机制确保了当文件内容发生变化时，文件名也会随之改变，从而使浏览器能够可靠地获取最新版本的资源，同时对未更改的资源利用缓存。
+                </div>
+            </div>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">将构建文件从Windows 11传输到Ubuntu服务器</div>
+                </div>
+                <p>构建完成后，需要将本地Windows 11上 <code>build</code> 目录中的所有内容上传到Ubuntu服务器上Apache2配置的Web根目录中。</p>
+                
+                <h3>A. 在Ubuntu服务器上创建目标目录</h3>
+                <p>首先，通过SSH连接到您的Ubuntu服务器。在服务器上为您的React应用创建一个目标目录。Apache的Web根目录通常位于 <code>/var/www/</code>。为每个站点创建一个子目录是良好实践。例如，为您的应用创建一个名为 <code>your-react-app</code> 的目录：</p>
+                
+                <div class="command">sudo mkdir -p /var/www/your-react-app</div>
+                
+                <p>将 <code>your-react-app</code> 替换为您希望的目录名。</p>
+
+                <h3>B. 使用SCP (Secure Copy Protocol) 从Windows PowerShell传输文件</h3>
+                <p>Windows PowerShell内置了 <code>scp</code> 命令，可以安全地传输文件。打开Windows PowerShell，导航到您本地React项目的根目录（确保 <code>build</code> 文件夹在此路径下或您能指定其完整路径）。执行以下命令将 <code>build</code> 目录的内容上传到服务器：</p>
+                
+                <div class="command">scp -r ./build/* your_username@your_server_ip:/var/www/your-react-app/</div>
+                
+                <p>请进行如下替换：</p>
+                <ul>
+                    <li><code>./build/*</code>：如果您的构建输出目录不是 <code>build</code>，请相应更改。<code>/*</code> 确保复制目录下的所有文件和子目录。</li>
+                    <li><code>your_username</code>：您在Ubuntu服务器上的用户名。</li>
+                    <li><code>your_server_ip</code>：您的Ubuntu服务器的IP地址或域名。</li>
+                    <li><code>/var/www/your-react-app/</code>：您在服务器上创建的目标目录。</li>
+                </ul>
+                
+                <div class="note">
+                    <strong>示例：</strong> 如果构建目录是 <code>dist</code>，用户名是 <code>devuser</code>，服务器IP是 <code>192.168.1.100</code>，目标目录是 <code>/var/www/my-awesome-app</code>，命令将是：
+                    <div class="command">scp -r ./dist/* devuser@192.168.1.100:/var/www/my-awesome-app/</div>
+                </div>
+                
+                <p>系统可能会提示您输入服务器用户的密码，或者如果您配置了SSH密钥，则会自动使用密钥进行身份验证。</p>
+
+                <h3>C. (可选) 使用WinSCP等GUI工具传输文件</h3>
+                <p>对于喜欢图形界面的Windows用户，可以使用WinSCP等工具：</p>
+                <ol>
+                    <li>下载并安装WinSCP。</li>
+                    <li>使用SFTP协议连接到您的Ubuntu服务器（提供服务器IP、用户名和密码/SSH密钥）。</li>
+                    <li>连接成功后，WinSCP会显示一个双窗格界面，左边是您的本地文件系统（Windows 11），右边是服务器的文件系统（Ubuntu）。</li>
+                    <li>在左侧窗格导航到您本地的 <code>build</code> 目录，在右侧窗格导航到服务器上的 <code>/var/www/your-react-app/</code> 目录。</li>
+                    <li>选中 <code>build</code> 目录下的所有文件和文件夹，然后将它们从左侧窗格拖放到右侧窗格，或使用WinSCP的上传功能。</li>
+                </ol>
+            </div>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">在Ubuntu 24.04上安装和配置Apache2</div>
+                </div>
+                <p>此步骤与标准Apache设置相同，确保您的服务器已准备好托管Web内容。</p>
+                
+                <h3>A. 安装Apache2</h3>
+                <p>更新包列表以获取最新的软件版本信息：</p>
+                <div class="command">sudo apt update</div>
+                
+                <p>安装Apache2软件包：</p>
+                <div class="command">sudo apt install apache2 -y</div>
+                <p><code>-y</code> 选项会自动确认安装提示。</p>
+                
+                <h3>B. 启动并启用Apache2服务</h3>
+                <p>安装完成后，启动Apache2服务：</p>
+                <div class="command">sudo systemctl start apache2</div>
+                
+                <p>将Apache2服务设置为开机自启动：</p>
+                <div class="command">sudo systemctl enable apache2</div>
+                
+                <p>可以通过 <code>sudo systemctl status apache2</code> 检查服务状态，确保其正在运行。</p>
+                
+                <h3>C. 配置防火墙 (UFW)</h3>
+                <p>如果服务器上启用了UFW (Uncomplicated Firewall)，需要允许HTTP和HTTPS流量。</p>
+                
+                <p>允许Apache的完整配置文件，这将同时打开端口80 (HTTP) 和端口443 (HTTPS)：</p>
+                <div class="command">sudo ufw allow 'Apache Full'</div>
+                
+                <p>或者，如果暂时只部署HTTP站点，可以只允许端口80：</p>
+                <div class="command">sudo ufw allow 80/tcp</div>
+                
+                <p>如果UFW尚未启用，请启用它：</p>
+                <div class="command">sudo ufw enable</div>
+                
+                <p>并确认操作。可以通过 <code>sudo ufw status</code> 查看防火墙状态和规则。</p>
+                
+                <h3>D. 启用 mod_rewrite 模块</h3>
+                <p>React应用通常是单页应用 (SPA)，依赖客户端路由。为了使Apache能够正确处理这些路由（例如，当用户直接访问 yourdomain.com/some-route 或刷新此类页面时），需要启用 <code>mod_rewrite</code> 模块。</p>
+                
+                <p>启用 <code>mod_rewrite</code>：</p>
+                <div class="command">sudo a2enmod rewrite</div>
+                
+                <p>为了使更改生效，需要重启Apache2服务：</p>
+                <div class="command">sudo systemctl restart apache2</div>
+                
+                <div class="note">
+                    <strong>注意：</strong> <code>mod_rewrite</code> 模块对于后续步骤中配置URL重写规则至关重要。
+                </div>
+            </div>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">为React应用配置Apache2</div>
+                </div>
+                <p>正确配置Apache2以服务React应用是部署成功的核心。这通常涉及创建一个新的虚拟主机文件，并设置URL重写规则以支持React Router等客户端路由库。</p>
+                
+                <h3>A. 创建Apache虚拟主机文件</h3>
+                <p>虚拟主机允许在单个服务器上托管多个网站。为React应用创建一个专用的虚拟主机配置文件是一种推荐的做法。</p>
+                
+                <p>Apache的虚拟主机配置文件通常存储在 <code>/etc/apache2/sites-available/</code> 目录中。可以复制默认的配置文件 <code>000-default.conf</code> 作为模板，或者创建一个新文件。</p>
+                
+                <div class="command">sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/your-react-app.conf</div>
+                
+                <p>或者，创建一个全新的文件：</p>
+                <div class="command">sudo nano /etc/apache2/sites-available/your-react-app.conf</div>
+                
+                <p>将 <code>your-react-app.conf</code> 替换为描述性的文件名，例如与域名相关的文件名。</p>
+                
+                <p>编辑新的配置文件，并填入以下内容，根据实际情况进行修改：</p>
+                
+                <pre><code>&lt;VirtualHost *:80&gt;
+    ServerAdmin webmaster@your_domain.com
+    ServerName your_domain.com       # 替换为您的域名或服务器IP
+    ServerAlias www.your_domain.com  # 可选
+
+    DocumentRoot /var/www/your-react-app # 必须与步骤2中文件上传的目标目录一致
+
+    &lt;Directory /var/www/your-react-app&gt;
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+
+        RewriteEngine On
+        # 如果请求的是一个实际存在的文件或目录，则直接提供服务
+        RewriteCond %{REQUEST_FILENAME} -f
+        RewriteCond %{REQUEST_FILENAME} -d
+        RewriteRule ^ - [L]
+
+        # 如果请求的路径不是文件或目录，则将请求重写到 /index.html
+        # 以便React Router能够处理客户端路由
+        RewriteRule ^ /index.html [L]
+    &lt;/Directory&gt;
+
+    ErrorLog ${APACHE_LOG_DIR}/your-react-app-error.log
+    CustomLog ${APACHE_LOG_DIR}/your-react-app-access.log combined
+&lt;/VirtualHost&gt;</code></pre>
+                
+                <p>关键配置说明：</p>
+                <ul>
+                    <li><strong>ServerName</strong>: 设置为您的域名或服务器IP地址。</li>
+                    <li><strong>DocumentRoot</strong>: 必须指向您在步骤2中上传React构建文件的目录 (/var/www/your-react-app)。</li>
+                    <li><strong>&lt;Directory /var/www/your-react-app&gt;</strong>: 此块内的指令应用于您的应用目录。</li>
+                    <li><strong>AllowOverride None</strong>: 因为重写规则直接在此文件中定义，所以设为 None 以提高安全性和性能。</li>
+                    <li><strong>RewriteEngine On</strong>: 启用重写引擎。</li>
+                    <li><strong>RewriteCond %{REQUEST_FILENAME} -f</strong>: 如果请求的是一个存在的文件...</li>
+                    <li><strong>RewriteCond %{REQUEST_FILENAME} -d</strong>:...或者一个存在的目录...</li>
+                    <li><strong>RewriteRule ^ - [L]</strong>:...则不进行重写，直接提供该文件/目录，并停止处理后续规则 ([L])。</li>
+                    <li><strong>RewriteRule ^ /index.html [L]</strong>: 如果以上条件都不满足（即请求的既不是文件也不是目录），则将所有这类请求内部重写到 /index.html 文件。[L] 表示这是最后一个规则。这允许React Router接管并处理应用的客户端路由。</li>
+                </ul>
+                
+                <h3>B. 为SPA实现URL重写规则 (客户端路由)</h3>
+                <p>单页应用 (SPA) 的一个核心特性是客户端路由。当用户在浏览器中直接输入应用的某个子路径 (例如 your_domain.com/profile) 或在子路径页面刷新时，Web服务器（如Apache）默认会尝试在 DocumentRoot 中查找名为 profile 的文件或目录。由于客户端路由是由JavaScript处理的，服务器上并不存在这样的物理文件或目录，这将导致404错误。</p>
+                
+                <p>为了解决这个问题，需要配置Apache的 <code>mod_rewrite</code> 模块，将所有指向应用内路由的请求（除了对实际存在的静态文件如JS、CSS、图片的请求）都重定向到 <code>index.html</code> 文件。然后，React Router或其他客户端路由库将接管并显示正确的视图。</p>
+                
+                <p>在之前创建的虚拟主机配置文件 (<code>your-react-app.conf</code>) 中的 <code>&lt;Directory /var/www/your-react-app&gt;</code> 块内添加以下重写规则。这是推荐的做法，因为它比使用 <code>.htaccess</code> 文件更安全且性能稍好，因为Apache不需要在每个请求中检查目录树中是否存在 <code>.htaccess</code> 文件。</p>
+                
+                <pre><code>&lt;Directory /var/www/your-react-app&gt;
+    Options Indexes FollowSymLinks
+    AllowOverride None # 因为规则在这里定义
+    Require all granted
+
+    RewriteEngine On
+    # 如果请求的是一个实际存在的文件，则不重写
+    RewriteCond %{REQUEST_FILENAME} -f
+    # 如果请求的是一个实际存在的目录，则不重写
+    RewriteCond %{REQUEST_FILENAME} -d
+    # 将所有其他请求重写到 index.html，由React Router处理
+    RewriteRule ^ index.html [L]
+&lt;/Directory&gt;</code></pre>
+                
+                <p>下面是对这些重写规则的详细解释：</p>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>指令/条件</th>
+                                <th>类型</th>
+                                <th>描述</th>
+                                <th>示例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>RewriteEngine On</td>
+                                <td>指令</td>
+                                <td>启用URL重写引擎。这是使用任何重写规则的前提。</td>
+                                <td>RewriteEngine On</td>
+                            </tr>
+                            <tr>
+                                <td>RewriteCond %{REQUEST_FILENAME} -f</td>
+                                <td>条件</td>
+                                <td>检查请求的路径是否对应一个实际存在的文件（例如 main.js, logo.png）。如果是，则此条件为真。</td>
+                                <td>RewriteCond %{REQUEST_FILENAME} -f</td>
+                            </tr>
+                            <tr>
+                                <td>RewriteCond %{REQUEST_FILENAME} -d</td>
+                                <td>条件</td>
+                                <td>检查请求的路径是否对应一个实际存在的目录。如果是，则此条件为真。<code>!</code> 连接符表示如果前一个 -f 条件为真，则不再检查此条件。</td>
+                                <td>RewriteCond %{REQUEST_FILENAME} -d</td>
+                            </tr>
+                            <tr>
+                                <td>RewriteRule ^ index.html [L]</td>
+                                <td>规则</td>
+                                <td>如果前面的 RewriteCond 条件均不满足（即请求的既不是文件也不是目录），则此规则生效。^ 匹配请求路径的开头 (实际上是匹配所有内容，因为没有后续模式)。请求将被内部重写到 index.html。[L] 标志表示这是最后一个要应用的规则，Apache将停止处理后续的重写规则。</td>
+                                <td>RewriteRule ^ index.html [L]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="note">
+                    <strong>重要提示：</strong> React的构建工具（如Create React App）通常会在生成的 <code>index.html</code> 文件中为JS、CSS等静态资源使用绝对路径（例如 <code>&lt;script src="/static/js/main.chunk.js"&gt;&lt;/script&gt;</code>）。这意味着即使浏览器因为路由（如 your_domain.com/some/route）而认为当前的基础路径是 /some/route/，对 /static/js/... 的请求仍然会从域名根目录正确解析。
+                </div>
+                
+                <h3>C. 设置文件和目录权限</h3>
+                <p>Apache2在Ubuntu上通常以 <code>www-data</code> 用户和 <code>www-data</code> 组的身份运行。此用户需要具有读取React应用文件的权限才能将它们提供给访问者。</p>
+                
+                <p>将React应用目录 (<code>/var/www/your-react-app</code>) 的所有权更改为 <code>www-data</code> 用户和组：</p>
+                <div class="command">sudo chown -R www-data:www-data /var/www/your-react-app</div>
+                
+                <p><code>-R</code> 选项表示递归地更改所有子文件和子目录的所有权。</p>
+                
+                <p>为文件和目录设置适当的权限。一个常见的安全做法是：</p>
+                
+                <p>为目录设置 755 权限 (rwxr-xr-x): 所有者（www-data）拥有读、写、执行权限；组用户和其他用户拥有读、执行权限。执行权限对于目录是必需的，以便能够访问其中的文件。</p>
+                <div class="command">sudo find /var/www/your-react-app -type d -exec chmod 755 {} \;</div>
+                
+                <p>为文件设置 644 权限 (rw-r--r--): 所有者（www-data）拥有读、写权限；组用户和其他用户拥有只读权限。</p>
+                <div class="command">sudo find /var/www/your-react-app -type f -exec chmod 644 {} \;</div>
+                
+                <div class="note">
+                    <strong>注意：</strong> 这些权限确保 www-data 用户可以读取文件并遍历目录以提供服务，同时限制了不必要的写入权限，增强了安全性。对于静态前端资源，部署后通常不需要 www-data 用户具有写权限。
+                </div>
+            </div>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">启用新站点并验证配置</div>
+                </div>
+                <p>完成虚拟主机文件的配置后，需要启用该站点，并（可选地）禁用默认站点，然后测试配置的语法并重启Apache服务。</p>
+                
+                <p><strong>启用新的虚拟主机：</strong>使用 <code>a2ensite</code> 工具启用新的站点配置。这将会在 <code>/etc/apache2/sites-enabled/</code> 目录中创建一个指向 <code>/etc/apache2/sites-available/your-react-app.conf</code> 的符号链接。</p>
+                <div class="command">sudo a2ensite your-react-app.conf</div>
+                
+                <p><strong>禁用默认的Apache站点 (可选但推荐)：</strong>如果这是服务器上的主要站点，或者为了避免与默认配置冲突，建议禁用默认的 <code>000-default.conf</code> 站点。</p>
+                <div class="command">sudo a2dissite 000-default.conf</div>
+                
+                <p><strong>测试Apache配置语法：</strong>在重启Apache之前，务必检查配置文件是否存在语法错误。这是一个非常重要的步骤，可以防止因配置错误导致Apache服务启动失败。</p>
+                <div class="command">sudo apache2ctl configtest</div>
+                
+                <p>如果一切正常，应该会看到 <code>Syntax OK</code> 的输出。如果存在错误，命令会指出错误所在的文件和行号，需要先修复这些错误。</p>
+                
+                <p><strong>重启或重载Apache2服务：</strong>为了使所有更改（包括启用的新站点和模块配置）生效，需要重启或重载Apache服务。</p>
+                
+                <p>重启 (Restart): 这会完全停止然后重新启动Apache服务。</p>
+                <div class="command">sudo systemctl restart apache2</div>
+                
+                <p>重载 (Reload): 这会尝试平滑地重新加载配置文件，而不会中断当前活动连接。对于大多数配置更改，重载通常是足够的。</p>
+                <div class="command">sudo systemctl reload apache2</div>
+                
+                <div class="note">
+                    <strong>提示：</strong> 如果对模块进行了更改（如启用 mod_rewrite），或者不确定时，使用 restart 更为稳妥。a2ensite 和 a2dissite 工具以及 apache2ctl configtest 是管理Apache配置的稳健方式，忽略 configtest 可能会在配置存在语法错误时导致Apache服务中断。
+                </div>
+            </div>
+
+            <div class="step-container">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">测试已部署的React应用</div>
+                </div>
+                <p>在Apache配置完成并重启服务后，需要彻底测试React应用程序以确保其按预期工作。</p>
+                
+                <ul>
+                    <li><strong>访问主页：</strong>打开Web浏览器，输入服务器的IP地址或配置的域名（例如 <code>http://your_server_ip</code> 或 <code>http://your_domain.com</code>）。验证React应用的主页是否正确加载。</li>
+                    
+                    <li><strong>测试客户端路由：</strong>点击应用程序内部的链接，导航到不同的客户端路由（例如 <code>/about</code>, <code>/products/123</code>）。确保页面内容按预期更新，并且浏览器地址栏中的URL也相应变化，但页面没有进行整页刷新。</li>
+                    
+                    <li><strong>测试直接URL访问 (深链接)：</strong>在浏览器的地址栏中手动输入一个应用的深层客户端路由（例如 <code>http://your_server_ip/some-deep-link</code>），然后按Enter键。应用程序应该加载并显示对应于该路由的正确页面。这是检验 mod_rewrite 规则是否正确工作的重要测试。</li>
+                    
+                    <li><strong>测试页面刷新：</strong>导航到一个客户端路由（不是主页），然后刷新浏览器（通常按F5或Ctrl/Cmd+R）。页面应该重新加载并停留在当前路由，显示正确的内容。这也依赖于 mod_rewrite 规则的正确性。</li>
+                    
+                    <li><strong>检查浏览器开发者控制台：</strong>打开浏览器的开发者工具（通常按F12），检查"Console"选项卡是否有任何错误，例如JavaScript错误或资源加载失败的404错误。同时检查"Network"选项卡，确保所有JS、CSS、图片等资源都已成功加载 (状态码 200 或 304)。</li>
+                </ul>
+                
+                <div class="warning">
+                    <strong>注意：</strong> 全面的测试至关重要。仅仅加载主页不足以确认部署成功。单页应用的路由行为，特别是深链接和页面刷新，是配置错误最容易暴露的地方。如果 mod_rewrite 规则不正确或未激活，主页（index.html）可能仍能加载，但任何直接访问深链接或刷新子页面的尝试都可能导致服务器返回404错误，因为Apache无法在其文件系统中找到与客户端路由对应的文件或目录。
+                </div>
+            </div>
+        </section>
+
+        <section id="troubleshooting">
+            <h2>故障排除</h2>
+            <p>在部署过程中可能会遇到一些常见问题。以下是一些典型问题及其排查方法：</p>
+            
+            <div class="card">
+                <h3>刷新或直接导航到子路由时出现404错误</h3>
+                <p><strong>原因:</strong> 这通常表明 mod_rewrite 未正确工作。可能是 mod_rewrite 模块未启用，Apache未重启以加载模块，重写规则本身有误，或者如果使用 .htaccess 文件，则虚拟主机配置中的 AllowOverride 指令未设置为允许重写规则 (例如 AllowOverride All 或 AllowOverride FileInfo)。</p>
+                <p><strong>解决方案:</strong> 确认已执行 <code>sudo a2enmod rewrite</code> 并重启了Apache。仔细检查虚拟主机文件 (或 .htaccess 文件) 中的 RewriteEngine On, RewriteCond, 和 RewriteRule 指令是否正确无误 (参考步骤4B)。如果使用 .htaccess，确保相关的 <code>&lt;Directory&gt;</code> 配置中 AllowOverride 设置正确。</p>
+            </div>
+            
+            <div class="card">
+                <h3>出现403 Forbidden / Permission Denied错误</h3>
+                <p><strong>原因:</strong> Apache进程（通常是 www-data 用户）没有足够的权限读取部署的文件或目录。</p>
+                <p><strong>解决方案:</strong> 验证 <code>/var/www/your-react-app</code> 及其内容的所用权和权限设置是否如步骤4C所述（即，所有者为 www-data:www-data，目录权限为 755，文件权限为 644）。同时，确保虚拟主机配置的 <code>&lt;Directory&gt;</code> 块中包含 <code>Require all granted</code> 指令。</p>
+            </div>
+            
+            <div class="card">
+                <h3>静态资源 (CSS, JS, 图片) 加载失败 (针对这些资源出现404错误)</h3>
+                <p><strong>原因:</strong></p>
+                <ul>
+                    <li>index.html 文件中引用的资源路径不正确。</li>
+                    <li>mod_rewrite 规则错误地拦截了对静态资源的请求，并将它们也重写到了 index.html。</li>
+                    <li>静态资源文件在步骤2中未能正确传输到服务器的 DocumentRoot。</li>
+                </ul>
+                <p><strong>解决方案:</strong></p>
+                <ul>
+                    <li>检查浏览器开发者工具的网络(Network)选项卡，查看哪些资源404。检查 build/index.html (或服务器上的对应文件) 中这些资源的 <code>&lt;link&gt;</code> 或 <code>&lt;script&gt;</code> 标签的 href 或 src 属性。如前所述，Create React App等工具通常会生成以 / 开头的绝对路径 (如 /static/css/main.css)，这通常是正确的。</li>
+                    <li>确保 <code>RewriteCond %{REQUEST_FILENAME} -f</code> 和 <code>RewriteCond %{REQUEST_FILENAME} -d</code> 规则存在且正确，以避免重写对实际文件和目录的请求。</li>
+                    <li>在服务器上确认相应的静态文件确实存在于 DocumentRoot 下的预期路径中。</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3>Apache配置测试失败 (sudo apache2ctl configtest 报告错误)</h3>
+                <p><strong>原因:</strong> Apache的 .conf 配置文件中存在语法错误。</p>
+                <p><strong>解决方案:</strong> 仔细阅读 configtest 命令输出的错误消息，它通常会明确指出包含错误的文件名和行号。常见的错误包括指令拼写错误、参数数量不正确、括号或引号未正确闭合等。</p>
+            </div>
+            
+            <div class="card">
+                <h3>配置更改后，网站行为未发生变化</h3>
+                <p><strong>原因:</strong></p>
+                <ul>
+                    <li>在修改Apache配置文件后，未重启或重载Apache服务。</li>
+                    <li>浏览器缓存了旧的页面或资源。</li>
+                </ul>
+                <p><strong>解决方案:</strong></p>
+                <ul>
+                    <li>确保已执行 <code>sudo systemctl restart apache2</code> 或 <code>sudo systemctl reload apache2</code>。</li>
+                    <li>清除浏览器缓存，或使用浏览器的无痕/隐私模式进行测试。</li>
+                </ul>
+            </div>
+            
+            <div class="note">
+                <p>对于更复杂的故障排除，查阅Apache的错误日志 (<code>/var/log/apache2/error.log</code> 以及在虚拟主机配置中定义的特定于站点的错误日志) 是非常宝贵的。这些日志通常包含有关请求处理失败的详细信息。</p>
+            </div>
+        </section>
+
+        <section id="enhancements">
+            <h2>总结与后续步骤</h2>
+            <p>至此，您已成功完成了将React项目前端代码部署到运行Apache2的Ubuntu 24.04服务器的关键步骤。这包括了为生产环境构建React应用、将构建文件安全地传输到服务器、安装和基础配置Apache2、为React应用设置专门的虚拟主机、实现对单页应用至关重要的URL重写规则，以及配置正确的文件权限。</p>
+            
+            <p><code>mod_rewrite</code> 模块的正确配置是确保React应用客户端路由（如React Router管理的路由）在直接访问或页面刷新时能够正常工作的核心。</p>
+            
+            <h3>后续增强建议</h3>
+            <p>为了使您的部署更加健壮、安全和高效，可以考虑以下后续步骤：</p>
+            
+            <div class="card">
+                <h3><i class="icon">🔒</i> 启用HTTPS (使用Let's Encrypt)</h3>
+                <p>强烈建议为您的网站启用HTTPS，以加密客户端和服务器之间的通信。Certbot是一个流行的工具，可以轻松地从Let's Encrypt获取并自动续订免费的SSL/TLS证书。安装Certbot及其Apache插件后，通常只需一条命令即可为您的站点配置HTTPS。</p>
+                <div class="command">sudo apt install certbot python3-certbot-apache
+sudo certbot --apache -d your_domain.com</div>
+            </div>
+            
+            <div class="card">
+                <h3><i class="icon">⚡</i> 配置缓存头 (Caching Headers)</h3>
+                <p>虽然React构建过程通过文件名哈希已经很好地处理了浏览器缓存静态资源的问题，但您仍然可以通过Apache配置更精细的 Cache-Control 和 Expires 头，为不同类型的资源（如HTML、CSS、JS、图片）设置不同的缓存策略，以进一步优化性能。</p>
+            </div>
+            
+            <div class="card">
+                <h3><i class="icon">🛡️</i> 增强Apache安全性</h3>
+                <p>除了HTTPS，还可以采取其他措施来加固Apache服务器，例如：</p>
+                <ul>
+                    <li>保持Apache和操作系统为最新版本。</li>
+                    <li>禁用不需要的Apache模块。</li>
+                    <li>在Apache配置中设置 <code>ServerTokens Prod</code> 和 <code>ServerSignature Off</code> 以隐藏服务器版本等敏感信息。</li>
+                    <li>配置其他安全相关的HTTP头，如 Content-Security-Policy (CSP)。</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3><i class="icon">📄</i> 自定义错误页面</h3>
+                <p>为常见的HTTP错误（如404 Not Found, 500 Internal Server Error）配置用户友好的自定义错误页面，可以提升用户体验。</p>
+            </div>
+            
+            <div class="card">
+                <h3><i class="icon">📊</i> 日志管理与监控</h3>
+                <p>定期审查Apache的访问日志和错误日志，以监控站点活动、发现潜在问题或安全威胁。可以考虑使用日志分析工具或设置日志轮转。</p>
+            </div>
+            
+            <div class="note">
+                <p>通过实施这些增强措施，可以显著提高部署的React应用程序的安全性、性能和整体专业性。部署不仅仅是一次性任务，而是一个持续维护和优化的过程。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container footer-content">
+            <p>将React项目前端代码部署到Ubuntu 24.04 (Apache2) 的权威指南</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">© 2025 年版权所有</p>
+        </div>
+    </footer>
+
+    <script>
+        // Tab functionality
+        function changeTab(event, tabId) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+            
+            // Show the selected tab content and set button as active
+            document.getElementById(tabId).classList.add("active");
+            event.currentTarget.classList.add("active");
+        }
+        
+        // Back to top button functionality
+        const backToTopButton = document.getElementById("backToTop");
+        
+        window.addEventListener("scroll", () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add("visible");
+            } else {
+                backToTopButton.classList.remove("visible");
+            }
+        });
+        
+        backToTopButton.addEventListener("click", () => {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    </script>
+</body>
+</html>
