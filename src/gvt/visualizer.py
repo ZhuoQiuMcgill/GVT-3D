@@ -36,24 +36,55 @@ class MeshVisualizer:
 
     def _setup_plotter(self) -> None:
         """Set up the PyVista plotter with default configuration."""
-        self.plotter = pv.Plotter(
-            window_size=DEFAULT_WINDOW_SIZE,
-            title=WINDOW_TITLE
-        )
+        # Create plotter - for PyVista 0.45.2, use default lighting unless specifically disabled
+        if LIGHTING_ENABLED:
+            self.plotter = pv.Plotter(
+                window_size=DEFAULT_WINDOW_SIZE,
+                title=WINDOW_TITLE
+            )
+        else:
+            self.plotter = pv.Plotter(
+                window_size=DEFAULT_WINDOW_SIZE,
+                title=WINDOW_TITLE,
+                lighting='none'
+            )
 
         # Configure plotter settings
         self.plotter.background_color = BACKGROUND_COLOR
 
+        # Enable optional features
         if USE_DEPTH_PEELING:
             self.plotter.enable_depth_peeling()
 
         if ANTI_ALIASING:
             self.plotter.enable_anti_aliasing()
 
-        # Setup lighting
-        if LIGHTING_ENABLED:
-            self.plotter.set_ambient(AMBIENT_LIGHT)
-            self.plotter.set_diffuse(DIFFUSE_LIGHT)
+        # Setup custom lighting if needed (PyVista 0.45.2 syntax)
+        if LIGHTING_ENABLED and (AMBIENT_LIGHT != 0.3 or DIFFUSE_LIGHT != 0.7):
+            # Only modify lighting if we want non-default values
+            # Remove default lights
+            self.plotter.remove_all_lights()
+
+            # Add main directional light
+            main_light = pv.Light(
+                position=(10, 10, 10),
+                focal_point=(0, 0, 0),
+                light_type='scene light'
+            )
+            main_light.intensity = DIFFUSE_LIGHT
+            self.plotter.add_light(main_light)
+
+            # Add softer ambient-like lighting from different directions
+            if AMBIENT_LIGHT > 0:
+                ambient_positions = [(-5, 5, 5), (5, -5, 5), (-5, -5, -5)]
+                for pos in ambient_positions:
+                    ambient_light = pv.Light(
+                        position=pos,
+                        focal_point=(0, 0, 0),
+                        light_type='scene light'
+                    )
+                    ambient_light.intensity = AMBIENT_LIGHT * 0.4
+                    self.plotter.add_light(ambient_light)
 
         # Enable picking if configured
         if self.picking_enabled:
