@@ -7,7 +7,7 @@ import os
 
 # Project paths
 ROOT_DIR = os.getcwd()
-DATA_DIR = os.path.join(ROOT_DIR, "data")
+DATA_DIR = os.path.join(ROOT_DIR, "data", "mesh")
 SRC_DIR = os.path.join(ROOT_DIR, "src")
 
 # Supported file formats
@@ -21,6 +21,17 @@ MESH_COLOR = "white"
 MESH_OPACITY = 1.0
 MESH_SPECULAR = 0.5
 MESH_SPECULAR_POWER = 20
+
+# Default rendering style - wireframe shows points and lines
+DEFAULT_RENDER_STYLE = "wireframe"  # Options: "surface", "wireframe", "points"
+DEFAULT_POINT_SIZE = 8.0
+DEFAULT_LINE_WIDTH = 3.0
+RENDER_POINTS_AS_SPHERES = True
+
+# Edge and wireframe settings
+SHOW_EDGES = True  # Changed to True for default wireframe display
+EDGE_COLOR = "white"
+WIREFRAME_COLOR = "white"
 
 # Interaction Settings
 PICKING_ENABLED = True
@@ -46,5 +57,3 @@ SMOOTH_SHADING = True
 # Debug Settings
 DEBUG_MODE = False
 VERBOSE_LOADING = True
-SHOW_EDGES = False
-EDGE_COLOR = "gray"
