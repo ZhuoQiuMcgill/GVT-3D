@@ -88,14 +88,15 @@ class MeshVisualizer:
                     ambient_light.intensity = AMBIENT_LIGHT * 0.4
                     self.plotter.add_light(ambient_light)
 
-        # Enable picking if configured
+        # Enable picking if configured - use enable_mesh_picking for better compatibility
         if self.picking_enabled:
-            self.plotter.enable_point_picking(
-                callback=self._point_pick_callback,
-                show_point=True,
-                point_size=PICKING_POINT_SIZE,
+            self.plotter.enable_mesh_picking(
+                callback=self._mesh_pick_callback,
+                show_message=False,
+                style='wireframe',
+                line_width=2,
                 color=PICKING_POINT_COLOR,
-                show_message=False
+                pickable_window=True
             )
 
     def add_mesh(self,
@@ -135,26 +136,28 @@ class MeshVisualizer:
         mesh_kwargs = {
             'color': color,
             'opacity': opacity,
-            'style': style,
             'smooth_shading': SMOOTH_SHADING,
         }
 
-        # Configure based on rendering style
+        # Configure based on rendering style with proper PyVista 0.45.2 parameters
         if style == 'wireframe':
             mesh_kwargs.update({
+                'style': 'wireframe',
                 'line_width': line_width,
-                'point_size': point_size,
-                'render_points_as_spheres': RENDER_POINTS_AS_SPHERES,
+                'render_lines_as_tubes': True,  # This helps make line width more visible
                 'show_edges': False,  # wireframe style already shows edges
             })
+
         elif style == 'points':
             mesh_kwargs.update({
+                'style': 'points',
                 'point_size': point_size,
                 'render_points_as_spheres': RENDER_POINTS_AS_SPHERES,
                 'show_edges': False,
             })
         elif style == 'surface':
             mesh_kwargs.update({
+                'style': 'surface',
                 'show_edges': show_edges,
                 'specular': MESH_SPECULAR,
                 'specular_power': MESH_SPECULAR_POWER,
@@ -168,6 +171,18 @@ class MeshVisualizer:
 
         # Add mesh to plotter
         self.mesh_actor = self.plotter.add_mesh(mesh, **mesh_kwargs)
+
+        # For wireframe mode, if point_size is significant, add points separately
+        if style == 'wireframe' and point_size > 1:
+            point_kwargs = {
+                'style': 'points',
+                'point_size': point_size,
+                'render_points_as_spheres': RENDER_POINTS_AS_SPHERES,
+                'color': color,
+                'opacity': opacity,
+            }
+            # Don't override with kwargs to avoid conflicts
+            self.plotter.add_mesh(mesh, **point_kwargs)
 
         # Reset camera if requested
         if reset_camera:
@@ -203,44 +218,61 @@ class MeshVisualizer:
             **kwargs
         )
 
-    def _point_pick_callback(self, point: np.ndarray) -> None:
+    def _mesh_pick_callback(self, mesh, point_id):
         """
-        Callback function for point picking interaction.
+        Callback function for mesh picking interaction.
 
         Args:
-            point: Picked point coordinates
+            mesh: The picked mesh
+            point_id: Picked point ID
         """
-        if self.current_mesh is None:
+        if self.current_mesh is None or point_id is None:
             return
 
-        # Find closest point on mesh
-        closest_point_id = self.current_mesh.find_closest_point(point)
-        closest_point = self.current_mesh.points[closest_point_id]
+        try:
+            # Get point coordinates
+            point_coords = self.current_mesh.points[point_id]
 
-        # Store picked point
-        self._picked_points.append({
-            'id': closest_point_id,
-            'coordinates': closest_point.copy(),
-            'original_pick': point.copy()
-        })
+            # Store picked point
+            self._picked_points.append({
+                'id': point_id,
+                'coordinates': point_coords.copy(),
+                'mesh': mesh
+            })
 
-        # Create info text
-        info_text = self._format_point_info(closest_point_id, closest_point)
+            # Create info text
+            info_text = self._format_point_info(point_id, point_coords)
 
-        # Add text label
-        label = self.plotter.add_text(
-            info_text,
-            position='lower_right',
-            font_size=PICKING_LABEL_FONT_SIZE,
-            color=PICKING_LABEL_COLOR,
-            name=f'pick_label_{len(self._pick_labels)}'
-        )
+            # Add text label at a fixed position (rotating through positions to avoid overlap)
+            positions = ['lower_right', 'lower_left', 'upper_right', 'upper_left']
+            position = positions[len(self._pick_labels) % len(positions)]
 
-        self._pick_labels.append(label)
+            label = self.plotter.add_text(
+                info_text,
+                position=position,
+                font_size=PICKING_LABEL_FONT_SIZE,
+                color=PICKING_LABEL_COLOR,
+                name=f'pick_label_{len(self._pick_labels)}'
+            )
 
-        # Call user callback if provided
-        if self.pick_callback:
-            self.pick_callback(closest_point_id, closest_point, self.current_mesh)
+            self._pick_labels.append(label)
+
+            # Add a sphere at the picked point to make it more visible
+            sphere = pv.Sphere(radius=0.05, center=point_coords)
+            sphere_actor = self.plotter.add_mesh(
+                sphere,
+                color=PICKING_POINT_COLOR,
+                name=f'pick_sphere_{len(self._picked_points) - 1}'
+            )
+
+            print(f"Picked point {point_id} at ({point_coords[0]:.3f}, {point_coords[1]:.3f}, {point_coords[2]:.3f})")
+
+            # Call user callback if provided
+            if self.pick_callback:
+                self.pick_callback(point_id, point_coords, self.current_mesh)
+
+        except Exception as e:
+            print(f"Error in pick callback: {e}")
 
     def _format_point_info(self, point_id: int, point: np.ndarray) -> str:
         """
@@ -283,6 +315,13 @@ class MeshVisualizer:
             except:
                 pass
 
+        # Remove spheres
+        for i, _ in enumerate(self._picked_points):
+            try:
+                self.plotter.remove_actor(f'pick_sphere_{i}')
+            except:
+                pass
+
         # Clear stored data
         self._picked_points.clear()
         self._pick_labels.clear()
@@ -307,12 +346,13 @@ class MeshVisualizer:
         self.picking_enabled = enabled
         if self.plotter:
             if enabled:
-                self.plotter.enable_point_picking(
-                    callback=self._point_pick_callback,
-                    show_point=True,
-                    point_size=PICKING_POINT_SIZE,
+                self.plotter.enable_mesh_picking(
+                    callback=self._mesh_pick_callback,
+                    show_message=False,
+                    style='wireframe',
+                    line_width=2,
                     color=PICKING_POINT_COLOR,
-                    show_message=False
+                    pickable_window=True
                 )
             else:
                 self.plotter.disable_picking()

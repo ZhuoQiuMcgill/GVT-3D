@@ -24,8 +24,8 @@ MESH_SPECULAR_POWER = 20
 
 # Default rendering style - wireframe shows points and lines
 DEFAULT_RENDER_STYLE = "wireframe"  # Options: "surface", "wireframe", "points"
-DEFAULT_POINT_SIZE = 50
-DEFAULT_LINE_WIDTH = 5
+DEFAULT_POINT_SIZE = 30
+DEFAULT_LINE_WIDTH = 10
 RENDER_POINTS_AS_SPHERES = True
 
 # Edge and wireframe settings
