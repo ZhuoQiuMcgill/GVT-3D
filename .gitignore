@@ -130,7 +130,6 @@ venv.bak/
 .idea/
 prompt/
 scripts/
-data/
 # Spyder project settings
 .spyderproject
 .spyproject
