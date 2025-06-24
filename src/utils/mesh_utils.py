@@ -17,10 +17,17 @@ def get_mesh_info(mesh: pv.PolyData) -> Dict[str, Any]:
     Returns:
         dict: Dictionary containing mesh information
     """
+    # Use n_faces_strict if available, otherwise fall back to n_cells for face count
+    try:
+        n_faces = mesh.n_faces_strict
+    except AttributeError:
+        # Fallback for older PyVista versions or when n_faces_strict is not available
+        n_faces = mesh.n_cells
+
     info = {
         'n_points': mesh.n_points,
         'n_cells': mesh.n_cells,
-        'n_faces': mesh.n_faces,
+        'n_faces': n_faces,
         'bounds': mesh.bounds,
         'center': mesh.center,
         'volume': 0.0,

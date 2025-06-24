@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .importer import MeshImporter
 from .visualizer import MeshVisualizer
-from ..config import DEBUG_MODE, WINDOW_TITLE
+from ..config import DEBUG_MODE, WINDOW_TITLE, DEFAULT_RENDER_STYLE
 from ..utils import find_sample_files, get_file_extension
 
 
@@ -182,6 +182,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
 Examples:
   python -m src.gvt.app model.obj
   python -m src.gvt.app data/sample.vtk --no-center
+  python -m src.gvt.app model.stl --style surface
   python -m src.gvt.app --list-samples
   python -m src.gvt.app --supported-formats
         """
@@ -230,6 +231,28 @@ Examples:
     )
 
     parser.add_argument(
+        '--style',
+        type=str,
+        choices=['surface', 'wireframe', 'points'],
+        default=DEFAULT_RENDER_STYLE,
+        help=f'Rendering style (default: {DEFAULT_RENDER_STYLE})'
+    )
+
+    parser.add_argument(
+        '--point-size',
+        type=float,
+        default=None,
+        help='Size of points in visualization'
+    )
+
+    parser.add_argument(
+        '--line-width',
+        type=float,
+        default=None,
+        help='Width of lines in visualization'
+    )
+
+    parser.add_argument(
         '--color',
         type=str,
         default=None,
@@ -246,7 +269,7 @@ Examples:
     parser.add_argument(
         '--show-edges',
         action='store_true',
-        help='Show mesh edges'
+        help='Show mesh edges (for surface style)'
     )
 
     parser.add_argument(
@@ -312,10 +335,23 @@ def main():
     try:
         # Prepare visualization kwargs
         viz_kwargs = {}
+
+        # Set style
+        viz_kwargs['style'] = args.style
+
+        # Set point and line sizes if specified
+        if args.point_size is not None:
+            viz_kwargs['point_size'] = args.point_size
+        if args.line_width is not None:
+            viz_kwargs['line_width'] = args.line_width
+
+        # Set color and opacity
         if args.color:
             viz_kwargs['color'] = args.color
         if args.opacity is not None:
             viz_kwargs['opacity'] = args.opacity
+
+        # Edge display (mainly for surface style)
         if args.show_edges:
             viz_kwargs['show_edges'] = True
 

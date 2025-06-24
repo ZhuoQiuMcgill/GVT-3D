@@ -10,6 +10,8 @@ import pyvista as pv
 from ..config import (
     WINDOW_TITLE, DEFAULT_WINDOW_SIZE, BACKGROUND_COLOR,
     MESH_COLOR, MESH_OPACITY, MESH_SPECULAR, MESH_SPECULAR_POWER,
+    DEFAULT_RENDER_STYLE, DEFAULT_POINT_SIZE, DEFAULT_LINE_WIDTH,
+    RENDER_POINTS_AS_SPHERES, WIREFRAME_COLOR,
     PICKING_ENABLED, PICKING_LABEL_COLOR, PICKING_LABEL_FONT_SIZE,
     PICKING_POINT_SIZE, PICKING_POINT_COLOR,
     AUTO_CAMERA_RESET, LIGHTING_ENABLED, AMBIENT_LIGHT, DIFFUSE_LIGHT,
@@ -100,6 +102,9 @@ class MeshVisualizer:
                  mesh: pv.PolyData,
                  color: str = MESH_COLOR,
                  opacity: float = MESH_OPACITY,
+                 style: str = DEFAULT_RENDER_STYLE,
+                 point_size: float = DEFAULT_POINT_SIZE,
+                 line_width: float = DEFAULT_LINE_WIDTH,
                  show_edges: bool = SHOW_EDGES,
                  reset_camera: bool = AUTO_CAMERA_RESET,
                  **kwargs) -> Any:
@@ -110,7 +115,10 @@ class MeshVisualizer:
             mesh: PyVista PolyData to visualize
             color: Mesh color
             opacity: Mesh opacity (0-1)
-            show_edges: Whether to show mesh edges
+            style: Rendering style ('surface', 'wireframe', 'points')
+            point_size: Size of points when rendering
+            line_width: Width of lines when rendering
+            show_edges: Whether to show mesh edges (for surface style)
             reset_camera: Whether to reset camera to fit mesh
             **kwargs: Additional arguments for plotter.add_mesh()
 
@@ -123,20 +131,39 @@ class MeshVisualizer:
         # Store current mesh
         self.current_mesh = mesh
 
-        # Set up mesh properties
+        # Set up mesh properties based on style
         mesh_kwargs = {
             'color': color,
             'opacity': opacity,
-            'show_edges': show_edges,
+            'style': style,
             'smooth_shading': SMOOTH_SHADING,
-            'specular': MESH_SPECULAR,
-            'specular_power': MESH_SPECULAR_POWER,
         }
 
-        if show_edges:
-            mesh_kwargs['edge_color'] = EDGE_COLOR
+        # Configure based on rendering style
+        if style == 'wireframe':
+            mesh_kwargs.update({
+                'line_width': line_width,
+                'point_size': point_size,
+                'render_points_as_spheres': RENDER_POINTS_AS_SPHERES,
+                'show_edges': False,  # wireframe style already shows edges
+            })
+        elif style == 'points':
+            mesh_kwargs.update({
+                'point_size': point_size,
+                'render_points_as_spheres': RENDER_POINTS_AS_SPHERES,
+                'show_edges': False,
+            })
+        elif style == 'surface':
+            mesh_kwargs.update({
+                'show_edges': show_edges,
+                'specular': MESH_SPECULAR,
+                'specular_power': MESH_SPECULAR_POWER,
+            })
+            if show_edges:
+                mesh_kwargs['edge_color'] = EDGE_COLOR
+                mesh_kwargs['line_width'] = line_width
 
-        # Merge with user-provided kwargs
+        # Merge with user-provided kwargs (user kwargs take precedence)
         mesh_kwargs.update(kwargs)
 
         # Add mesh to plotter
@@ -147,6 +174,34 @@ class MeshVisualizer:
             self.plotter.reset_camera()
 
         return self.mesh_actor
+
+    def set_render_style(self, style: str, point_size: float = None, line_width: float = None) -> None:
+        """
+        Change the rendering style of the current mesh.
+
+        Args:
+            style: Rendering style ('surface', 'wireframe', 'points')
+            point_size: Override point size
+            line_width: Override line width
+        """
+        if self.current_mesh is None or self.mesh_actor is None:
+            return
+
+        # Remove current mesh
+        self.plotter.remove_actor(self.mesh_actor)
+
+        # Re-add with new style
+        kwargs = {'style': style}
+        if point_size is not None:
+            kwargs['point_size'] = point_size
+        if line_width is not None:
+            kwargs['line_width'] = line_width
+
+        self.mesh_actor = self.add_mesh(
+            self.current_mesh,
+            reset_camera=False,
+            **kwargs
+        )
 
     def _point_pick_callback(self, point: np.ndarray) -> None:
         """
